@@ -132,6 +132,7 @@ const index = () => {
   return (
     <div className="min-h-screen bg-gray-50 pt-8 px-4">
       <div className="max-w-6xl mx-auto">
+        <h1 className="text-3xl font-bold mb-6">My Dashboard</h1>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {/* Profile Section */}
           <div className="md:col-span-1">

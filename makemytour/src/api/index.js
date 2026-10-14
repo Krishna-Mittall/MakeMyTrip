@@ -6,8 +6,9 @@ export const BACKEND_URL =
 
 export const login = async (email, password) => {
   try {
-    const url = `${BACKEND_URL}/user/login?email=${email}&password=${password}`;
-    const res = await axios.post(url);
+    const res = await axios.post(`${BACKEND_URL}/user/login`, null, {
+      params: { email, password },
+    });
     const data = res.data;
     // console.log(data);
     return data;

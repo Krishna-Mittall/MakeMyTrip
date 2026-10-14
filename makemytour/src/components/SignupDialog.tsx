@@ -13,8 +13,10 @@ import { Input } from "./ui/input";
 import { signup, login } from "../api";
 import { setUser } from "@/store";
 import { useDispatch } from "react-redux";
-const SignupDialog = ({trigger}:any) => {
-  const [isSignup, setIsSignup] = useState(true);
+const SignupDialog = ({trigger, defaultMode = "signup"}:any) => {
+  const [isSignup, setIsSignup] = useState(defaultMode !== "login");
+  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
@@ -24,29 +26,51 @@ const SignupDialog = ({trigger}:any) => {
   const dispatch = useDispatch();
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError("");
+    setMessage("");
     if (isSignup) {
       try {
-        const signin = await signup(
+        await signup(
           firstName,
           lastName,
           email,
           phoneNumber,
           password
         );
-        dispatch(setUser(signin));
-      } catch (error) {
+        // account is created - now ask the user to sign in with it
+        setIsSignup(false);
+        setFirstName("");
+        setLastName("");
+        setPhoneNumber("");
+        setPassword("");
+        setMessage("Account created successfully! Please log in to continue.");
+      } catch (error: any) {
         console.log(error);
+        setError(
+          error?.response?.data?.message ||
+            "Could not create the account. This email may already be registered."
+        );
       }
     } else {
       try {
         const data = await login(email, password);
+        if (!data) {
+          setError("Invalid email or password.");
+          return;
+        }
         dispatch(setUser(data));
         setopem(false);
         clearform();
       } catch (error) {
         console.log(error);
+        setError("Could not log in right now. Please try again in a moment.");
       }
     }
+  };
+  const switchMode = (signupMode: boolean) => {
+    setIsSignup(signupMode);
+    setError("");
+    setMessage("");
   };
   const clearform = () => {
     setFirstName("");
@@ -55,8 +79,16 @@ const SignupDialog = ({trigger}:any) => {
     setPassword("");
     setPhoneNumber("");
   };
+  const handleOpenChange = (value: boolean) => {
+    setopem(value);
+    if (value) {
+      setIsSignup(defaultMode !== "login");
+      setError("");
+      setMessage("");
+    }
+  };
   return (
-    <Dialog open={open} onOpenChange={setopem}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
         {trigger}
       </DialogTrigger>
@@ -71,6 +103,16 @@ const SignupDialog = ({trigger}:any) => {
               : "Enter your credentials to access your account."}
           </DialogDescription>
         </DialogHeader>
+        {message && (
+          <p className="text-sm rounded-md bg-green-50 text-green-700 border border-green-200 px-3 py-2">
+            {message}
+          </p>
+        )}
+        {error && (
+          <p className="text-sm rounded-md bg-red-50 text-red-700 border border-red-200 px-3 py-2">
+            {error}
+          </p>
+        )}
         <form onSubmit={handleAuth} className="space-y-4 py-4">
           {isSignup && (
             <div className="grid grid-cols-2 gap-4">
@@ -141,7 +183,7 @@ const SignupDialog = ({trigger}:any) => {
               <Button
                 variant="link"
                 className="p-0 text-blue-600"
-                onClick={() => setIsSignup(false)}
+                onClick={() => switchMode(false)}
               >
                 Login
               </Button>
@@ -152,7 +194,7 @@ const SignupDialog = ({trigger}:any) => {
               <Button
                 variant="link"
                 className="p-0 text-blue-600"
-                onClick={() => setIsSignup(true)}
+                onClick={() => switchMode(true)}
               >
                 Sign Up
               </Button>

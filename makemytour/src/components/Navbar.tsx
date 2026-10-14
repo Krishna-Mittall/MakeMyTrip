@@ -1,6 +1,6 @@
 import React from "react";
 import SignupDialog from "./SignupDialog";
-import { LogOut, Plane, PlaneTakeoff, User } from "lucide-react";
+import { LayoutDashboard, LogOut, Plane, PlaneTakeoff, User } from "lucide-react";
 import NotificationBell from "./NotificationBell";
 import { useDispatch, useSelector } from "react-redux";
 import {
@@ -43,6 +43,11 @@ const Navbar = () => {
                 </Button>
               )}
 
+              <Button variant="ghost" className="px-2 sm:px-4" onClick={() => router.push("/profile")}>
+                <LayoutDashboard className="w-4 h-4 sm:mr-2" />
+                <span className="hidden sm:inline">My Dashboard</span>
+              </Button>
+
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button
@@ -70,7 +75,7 @@ const Navbar = () => {
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={() => router.push("/profile")}>
                     <User className="mr-2 h-4 w-4" />
-                    <span>Profile</span>
+                    <span>My Dashboard</span>
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => logout()}>
                     <LogOut className="mr-2 h-4 w-4" />
@@ -80,16 +85,26 @@ const Navbar = () => {
               </DropdownMenu>
             </>
           ) : (
-            <SignupDialog
-              trigger={
-                <Button
-                  variant="outline"
-                  className="bg-blue-600  text-white hover:bg-blue-700"
-                >
-                  Sign Up
-                </Button>
-              }
-            />
+            <>
+              <SignupDialog
+                defaultMode="login"
+                trigger={
+                  <Button variant="ghost" className="px-2 sm:px-4">
+                    Login
+                  </Button>
+                }
+              />
+              <SignupDialog
+                trigger={
+                  <Button
+                    variant="outline"
+                    className="bg-blue-600  text-white hover:bg-blue-700 px-3 sm:px-4"
+                  >
+                    Sign Up
+                  </Button>
+                }
+              />
+            </>
           )}
         </div>
       </div>
