@@ -13,8 +13,9 @@ const TrackedFlights = () => {
   const user = useSelector((state: any) => state.user.user);
   const router = useRouter();
   const [flights, setFlights] = useState<any[]>([]);
+  const [loaded, setLoaded] = useState(false);
   const load = useCallback(() => {
-    if (user?.id) getTrackedFlights(user.id).then(setFlights).catch(() => null);
+    if (user?.id) getTrackedFlights(user.id).then((list) => { setFlights(list); setLoaded(true); }).catch(() => null);
   }, [user?.id]);
   useEffect(load, [load]);
   useEvents(["FLIGHT_STATUS"], load);
@@ -23,7 +24,20 @@ const TrackedFlights = () => {
     return () => clearInterval(t);
   }, [load]);
 
-  if (!flights.length) return null;
+  if (!loaded) return null;
+  if (!flights.length) {
+    return (
+      <div className="bg-white rounded-xl shadow-lg p-4 sm:p-6">
+        <h2 className="text-2xl font-bold flex items-center gap-2 mb-2">
+          <PlaneTakeoff className="w-6 h-6 text-blue-600" /> My flights - live
+        </h2>
+        <p className="text-sm text-gray-600 mb-3">You are not tracking any flight yet. Flights you book are tracked automatically; you can also follow any flight to get delay, boarding and arrival-time alerts.</p>
+        <button className="text-sm px-3 py-1.5 rounded-lg bg-blue-600 text-white" onClick={() => router.push("/flight-status")}>
+          Track a flight
+        </button>
+      </div>
+    );
+  }
   return (
     <div className="bg-white rounded-xl shadow-lg p-4 sm:p-6">
       <div className="flex items-center justify-between mb-4">

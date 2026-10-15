@@ -184,6 +184,19 @@ public class MockFlightApiService {
         return overrideRepository.save(o);
     }
 
+    /** Demo changes do not last for ever: after a while the flight goes back to its automatic schedule. */
+    public int expireOlderThan(Duration age) {
+        Instant limit = Instant.now().minus(age);
+        int n = 0;
+        for (MockFlightOverride o : overrideRepository.findAll()) {
+            if (o.getUpdatedAt() == null || o.getUpdatedAt().isBefore(limit)) {
+                overrideRepository.deleteById(o.getFlightId());
+                n++;
+            }
+        }
+        return n;
+    }
+
     public void clear(String flightId) {
         overrideRepository.deleteById(flightId);
     }

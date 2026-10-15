@@ -30,6 +30,11 @@ public class AccessService {
         return user;
     }
 
+    /** Any logged-in user. */
+    public Users requireUser(String userId) {
+        return find(userId);
+    }
+
     private Users find(String userId) {
         if (userId == null || userId.isBlank()) {
             throw new ApiException(HttpStatus.UNAUTHORIZED, "Please log in");

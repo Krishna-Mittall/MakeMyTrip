@@ -8,6 +8,7 @@ import {
   getFlightStatus,
   getTrackedFlights,
   simulateFlight,
+  demoAdvanceFlight,
   trackFlight,
   untrackFlight,
 } from "@/api/extra";
@@ -129,6 +130,7 @@ const FlightStatusPage = () => {
             onClose={() => router.push("/flight-status", undefined, { shallow: true })}
             isAdmin={user?.role === "ADMIN"}
             adminId={user?.id}
+            loggedIn={!!user?.id}
             onChanged={() => {
               loadDetail();
               loadBoard();
@@ -230,7 +232,7 @@ const FlightCard = ({ f, onOpen, onTrack }: { f: any; onOpen: () => void; onTrac
   </div>
 );
 
-const DetailCard = ({ f, onTrack, onClose, isAdmin, adminId, onChanged }: any) => {
+const DetailCard = ({ f, onTrack, onClose, isAdmin, adminId, loggedIn, onChanged }: any) => {
   const [minutes, setMinutes] = useState(60);
   const [reason, setReason] = useState(REASONS[0]);
   const [busy, setBusy] = useState(false);
@@ -238,6 +240,20 @@ const DetailCard = ({ f, onTrack, onClose, isAdmin, adminId, onChanged }: any) =
     setBusy(true);
     try {
       await simulateFlight(f.flightId, adminId, action, mins, action === "DELAY" || action === "CANCEL" ? reason : undefined);
+      onChanged();
+    } catch (e) {
+      toast({ title: errorMessage(e), tone: "error" });
+    } finally {
+      setBusy(false);
+    }
+  };
+  const demo = async () => {
+    setBusy(true);
+    try {
+      const wasTracked = f.tracked;
+      if (!wasTracked) await trackFlight(adminId, f.flightId);
+      await demoAdvanceFlight(f.flightId, adminId);
+      if (!wasTracked) toast({ title: "Tracking this flight", message: "So that you get the notification for this demo update.", tone: "success" });
       onChanged();
     } catch (e) {
       toast({ title: errorMessage(e), tone: "error" });
@@ -332,6 +348,23 @@ const DetailCard = ({ f, onTrack, onClose, isAdmin, adminId, onChanged }: any) =
           </ul>
         </div>
       )}
+
+      {/* demo of the live updates for everybody who is logged in */}
+      <div className="rounded-xl border border-dashed border-blue-300 bg-blue-50/60 p-3 flex flex-wrap items-center justify-between gap-3">
+        <div className="text-sm text-blue-900 min-w-0">
+          <b>Try the live updates</b>
+          <p className="text-xs text-blue-800/80">
+            {loggedIn
+              ? "Simulate the next update from the flight-data API (delay, boarding, departed, in the air, landed). You get a notification for it."
+              : "Log in to simulate an update and see the notification, the bell and the revised arrival time."}
+          </p>
+        </div>
+        {loggedIn && (
+          <button disabled={busy} onClick={demo} className="px-3 py-1.5 rounded-md bg-blue-600 text-white text-sm disabled:opacity-60 whitespace-nowrap">
+            Simulate next update
+          </button>
+        )}
+      </div>
 
       {isAdmin && (
         <details className="rounded-xl border border-dashed p-3 bg-gray-50">

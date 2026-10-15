@@ -305,6 +305,39 @@ public class FlightStatusService {
         return out;
     }
 
+    // ------------------------------------------------------------------ demo
+
+    private static final int[] DEMO_DELAYS = {45, 60, 90, 120};
+
+    /**
+     * "Simulate the next live update" for the demo: every call moves the flight one step further - on time, delayed
+     * (with a reason), boarding, departed, in the air, landed, and then back to the automatic schedule. The people who
+     * follow the flight get the notification, exactly as if the provider had sent the change.
+     */
+    public StatusView demoAdvance(String flightId, String userId) {
+        Flight f = flight(flightId);
+        MockFlightApiService.Report r = mockApi.fetch(f);
+        // fix the current delay, so that the automatic plan does not change it while the clock is moved
+        if (!"CANCELLED".equals(r.getStatus()) && !"LANDED".equals(r.getStatus())) {
+            mockApi.simulate(flightId, "DELAY", r.getDelayMinutes(), r.getReason());
+        }
+        Instant target = null;
+        switch (r.getStatus()) {
+            case "ON_TIME" -> mockApi.simulate(flightId, "DELAY", DEMO_DELAYS[new Random().nextInt(DEMO_DELAYS.length)],
+                    MockFlightApiService.REASONS[new Random().nextInt(MockFlightApiService.REASONS.length)]);
+            case "DELAYED" -> target = r.getEstimatedDeparture().minus(Duration.ofMinutes(30));
+            case "BOARDING" -> target = r.getEstimatedDeparture().plus(Duration.ofMinutes(3));
+            case "DEPARTED" -> target = r.getEstimatedDeparture().plus(Duration.ofMinutes(20));
+            case "IN_AIR" -> target = r.getEstimatedArrival().plus(Duration.ofMinutes(2));
+            default -> mockApi.simulate(flightId, "CLEAR", null, null);
+        }
+        if (target != null) {
+            long minutes = (long) Math.ceil(Duration.between(r.getAsOf(), target).toSeconds() / 60.0);
+            mockApi.simulate(flightId, "SHIFT", (int) Math.max(1, minutes), null);
+        }
+        return toView(sync(f), f, userId);
+    }
+
     // ------------------------------------------------------------------ following flights
 
     public StatusView track(String userId, String flightId, String source, String reference) {
@@ -347,6 +380,7 @@ public class FlightStatusService {
     public void tick() {
         try {
             Instant now = Instant.now();
+            mockApi.expireOlderThan(Duration.ofHours(3));
             Set<String> followed = trackRepository.findAll().stream().map(FlightTrack::getFlightId).collect(Collectors.toSet());
             for (Flight f : flightRepository.findAll()) {
                 if (f.isAutoRoll()) {

@@ -15,6 +15,8 @@ import java.util.Map;
 public class FlightStatusController {
     @Autowired
     private FlightStatusService flightStatusService;
+    @Autowired
+    private com.makemytrip.makemytrip.services.AccessService accessService;
 
     @GetMapping("/board")
     public List<FlightStatusService.StatusView> board(@RequestParam(defaultValue = "24") int hours,
@@ -31,6 +33,12 @@ public class FlightStatusController {
     @GetMapping("/batch")
     public List<FlightStatusService.StatusView> batch(@RequestParam String ids, @RequestParam(required = false) String userId) {
         return flightStatusService.batch(Arrays.asList(ids.split(",")), userId);
+    }
+
+    @PostMapping("/{flightId}/demo")
+    public FlightStatusService.StatusView demo(@PathVariable String flightId, @RequestParam String userId) {
+        accessService.requireUser(userId);
+        return flightStatusService.demoAdvance(flightId, userId);
     }
 
     @GetMapping("/{flightId}")

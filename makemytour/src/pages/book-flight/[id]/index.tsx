@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { getflight, handleflightbooking } from "@/api";
-import { errorMessage, getFlightStatus, logInteraction } from "@/api/extra";
+import { errorMessage, getFlightStatus, logInteraction, trackFlight, untrackFlight } from "@/api/extra";
 import SeatMap from "@/components/booking/SeatMap";
 import PriceInsight from "@/components/booking/PriceInsight";
 import ReviewSection from "@/components/reviews/ReviewSection";
@@ -426,12 +426,29 @@ const BookFlightPage = () => {
                       Scheduled {fmtTime(status.scheduledDeparture)} → revised {fmtTime(status.estimatedDeparture)} (arrival {fmtTime(status.estimatedArrival)})
                     </p>
                   )}
-                  <button
-                    className="text-sm text-blue-600 hover:underline mt-2"
-                    onClick={() => router.push(`/flight-status?flight=${flight.id}`)}
-                  >
-                    Track this flight
-                  </button>
+                  <div className="flex flex-wrap items-center gap-3 mt-3">
+                    <button
+                      className={`text-sm px-3 py-1.5 rounded-full border ${status.tracked ? "bg-blue-600 text-white border-blue-600" : "bg-white text-blue-700 border-blue-300 hover:bg-blue-50"}`}
+                      onClick={async () => {
+                        if (!user?.id) {
+                          toast({ title: "Log in to track this flight", message: "Use the Login button at the top right.", tone: "warning" });
+                          return;
+                        }
+                        try {
+                          if (status.tracked) await untrackFlight(user.id, flight.id);
+                          else await trackFlight(user.id, flight.id);
+                          setStatus((old: any) => ({ ...old, tracked: !old.tracked }));
+                        } catch (e) {
+                          toast({ title: errorMessage(e), tone: "error" });
+                        }
+                      }}
+                    >
+                      {status.tracked ? "Tracking - you will get alerts" : "Track this flight"}
+                    </button>
+                    <button className="text-sm text-blue-600 hover:underline" onClick={() => router.push(`/flight-status?flight=${flight.id}`)}>
+                      Open live status
+                    </button>
+                  </div>
                 </div>
               )}
 

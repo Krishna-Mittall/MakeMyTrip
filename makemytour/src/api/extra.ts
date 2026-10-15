@@ -101,6 +101,7 @@ export const getFlightStatusBatch = (ids: string[], userId?: string) =>
   ids.length ? get(`/flight-status/batch`, { ids: ids.join(","), userId }) : Promise.resolve([]);
 export const trackFlight = (userId: string, flightId: string) => post(`/flight-status/track`, { userId, flightId });
 export const untrackFlight = (userId: string, flightId: string) => del(`/flight-status/track`, { userId, flightId });
+export const demoAdvanceFlight = (flightId: string, userId: string) => post(`/flight-status/${flightId}/demo`, { userId });
 export const simulateFlight = (flightId: string, adminId: string, action: string, minutes?: number, reason?: string) =>
   post(`/mock-api/flights/${flightId}/simulate`, { adminId, action, minutes, reason: reason || undefined });
 
