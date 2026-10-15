@@ -1,9 +1,11 @@
 package com.makemytrip.makemytrip.config;
 
+import com.makemytrip.makemytrip.models.AppSetting;
 import com.makemytrip.makemytrip.models.Flight;
 import com.makemytrip.makemytrip.models.Hotel;
 import com.makemytrip.makemytrip.models.Review;
 import com.makemytrip.makemytrip.models.ReviewPhoto;
+import com.makemytrip.makemytrip.repositories.AppSettingRepository;
 import com.makemytrip.makemytrip.repositories.FlightRepository;
 import com.makemytrip.makemytrip.repositories.HotelRepository;
 import com.makemytrip.makemytrip.repositories.ReviewPhotoRepository;
@@ -24,8 +26,8 @@ import java.util.*;
 import java.util.List;
 
 /**
- * A review section that is empty cannot show sorting, filtering, replies or moderation. On an empty "reviews"
- * collection this adds some sample reviews from sample travellers (there are no accounts behind them), a few
+ * A review section that is empty cannot show sorting, filtering, replies or moderation. The first time the
+ * backend starts it adds some sample reviews from sample travellers (there are no accounts behind them), a few
  * replies and helpful votes, and two flagged reviews that wait in the moderator queue. Switch it off with
  * app.seed.enabled=false.
  */
@@ -60,6 +62,10 @@ public class ReviewSeeder implements CommandLineRunner {
             "Did you book the deluxe room or the standard one?", "Good to know, I am planning to go in November.",
             "Agree about the breakfast, it was the best part.", "Thanks, this helped me decide."};
 
+    private static final String SEEDED_KEY = "sample-reviews-seeded";
+
+    @Autowired
+    private AppSettingRepository settingRepository;
     @Autowired
     private ReviewRepository reviewRepository;
     @Autowired
@@ -73,7 +79,8 @@ public class ReviewSeeder implements CommandLineRunner {
 
     @Override
     public void run(String... args) {
-        if (!enabled || reviewRepository.count() > 0) {
+        // runs once (even when real users have already written reviews), a marker in app_settings remembers it
+        if (!enabled || settingRepository.existsById(SEEDED_KEY)) {
             return;
         }
         List<Hotel> hotels = hotelRepository.findAll();
@@ -133,6 +140,7 @@ public class ReviewSeeder implements CommandLineRunner {
         rows.add(rude);
 
         reviewRepository.saveAll(rows);
+        settingRepository.save(new AppSetting(SEEDED_KEY, Instant.now().toString()));
     }
 
     private int pickRating(Random random) {
