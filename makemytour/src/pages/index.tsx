@@ -23,7 +23,7 @@ import {
   Users,
 } from "lucide-react";
 import { useRouter } from "next/router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useSelector } from "react-redux";
 
 export default function Home() {
@@ -36,6 +36,12 @@ export default function Home() {
   const [hotel, sethotel] = useState<any[]>([]);
   const [loading, setloading] = useState(true);
   const [flight, setflight] = useState<any[]>([]);
+  const [searched, setsearched] = useState(false);
+  const [formError, setformError] = useState("");
+  const [notice, setnotice] = useState("");
+  const dateRef = useRef<HTMLInputElement>(null);
+  const [searching, setsearching] = useState(false);
+  const [suggested, setsuggested] = useState(false);
   const user = useSelector((state: any) => state.user.user);
   const router = useRouter();
 
@@ -138,9 +144,9 @@ export default function Home() {
   useEffect(() => {
     const fetchdata = async () => {
       try {
-        const data = await gethotel();
-        sethotel(data);
-        const flightdata = await getflight();
+        // both lists are loaded at the same time so the page appears sooner
+        const [hotelData, flightdata] = await Promise.all([gethotel(), getflight()]);
+        sethotel(hotelData);
         setflight(flightdata);
       } catch (error) {
         console.error(error);
@@ -150,7 +156,7 @@ export default function Home() {
     };
 
     fetchdata();
-  }, [user]);
+  }, []);
 
   const cityOptions = useMemo(() => {
     const cities = new Set<string>();
@@ -164,24 +170,89 @@ export default function Home() {
     return Array.from(cities).map((city) => ({ value: city, label: city }));
   }, [flight, hotel]);
 
+  // routes that really exist, shown as suggestions when a search finds nothing
+  const routeSuggestions = useMemo(() => {
+    const seen = new Set<string>();
+    const routes: { from: string; to: string }[] = [];
+    flight.forEach((f: any) => {
+      const key = `${f.from}|${f.to}`;
+      if (!seen.has(key)) {
+        seen.add(key);
+        routes.push({ from: f.from, to: f.to });
+      }
+    });
+    return routes.slice(0, 8);
+  }, [flight]);
   if (loading) {
     return <Loader />;
   }
+  // helpers for the search
+  const dayKey = (d: Date) =>
+    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  const todayKey = dayKey(new Date());
+  const sameCity = (a: string, b: string) => {
+    const x = (a || "").trim().toLowerCase();
+    const y = (b || "").trim().toLowerCase();
+    return !!y && (x === y || x.startsWith(y));
+  };
+  const upcoming = (f: any) => new Date(f.departureTime).getTime() > Date.now();
+  const changeTab = (type: string) => {
+    setbookingtype(type);
+    setsearchresult([]);
+    setsearched(false);
+    setformError("");
+    setnotice("");
+    setsuggested(false);
+  };
   const handlesearch = () => {
+    setformError("");
+    setnotice("");
+    setsuggested(false);
+    setsearchresult([]);
+    setsearched(true);
+    const fail = (msg: string) => setformError(msg);
+
+    if (bookingtype === "flights") {
+      if (!from.trim() || !to.trim()) return fail("Please choose both the From and the To city.");
+      if (from.trim().toLowerCase() === to.trim().toLowerCase()) return fail("From and To cities cannot be the same.");
+    } else if (!to.trim()) {
+      return fail("Please choose a city.");
+    }
+    // the browser marks half typed or impossible dates (like 31-02) as "bad input" and gives an empty value
+    if (dateRef.current?.validity.badInput) return fail("That date is not valid. Please pick a real date from the calendar (for example 28-02-2026).");
+    if (date && date < todayKey) return fail("That date is in the past. Please choose today or a later date.");
+    if (!travelers || travelers < 1) return fail("Number of travelers must be at least 1.");
+
+    setsearching(true);
     if (user?.id && to) logInteraction(user.id, "SEARCH", undefined, undefined, to);
     if (bookingtype === "flights") {
-      const results = flight.filter(
-        (FLIGHT) =>
-          FLIGHT.from.toLowerCase() === from.toLowerCase() &&
-          FLIGHT.to.toLowerCase() === to.toLowerCase()
+      const route = flight.filter(
+        (FLIGHT) => sameCity(FLIGHT.from, from) && sameCity(FLIGHT.to, to) && upcoming(FLIGHT)
       );
-      setsearchresult(results);
+      if (route.length === 0) {
+        setnotice(`No flights found from ${from} to ${to}.`);
+        setsuggested(true);
+      } else if (date) {
+        const onDay = route.filter((FLIGHT) => dayKey(new Date(FLIGHT.departureTime)) === date);
+        if (onDay.length > 0) {
+          setsearchresult(onDay);
+        } else {
+          setnotice(
+            `No flights from ${from} to ${to} on ${new Date(date + "T00:00:00").toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" })}. Flights on other dates for this route are shown below.`
+          );
+          setsearchresult(route);
+        }
+      } else {
+        setsearchresult(route);
+      }
     } else if (bookingtype === "hotels") {
-      const results = hotel.filter(
-        (hotel) => hotel.location.toLowerCase() === to.toLowerCase()
-      );
+      const results = hotel.filter((hotel) => sameCity(hotel.location, to));
+      if (results.length === 0) {
+        setnotice(`No hotels found in ${to}. Hotels are available in: ${Array.from(new Set(hotel.map((h: any) => h.location))).join(", ")}.`);
+      }
       setsearchresult(results);
     }
+    setsearching(false);
   };
   const formatDate = (dateString: string): string => {
     const options: Intl.DateTimeFormatOptions = {
@@ -216,13 +287,13 @@ export default function Home() {
               icon={<Plane />}
               text="Flights"
               active={bookingtype === "flights"}
-              onClick={() => setbookingtype("flights")}
+              onClick={() => changeTab("flights")}
             />
             <NavItem
               icon={<Hotel />}
               text="Hotels"
               active={bookingtype === "hotels"}
-              onClick={() => setbookingtype("hotels")}
+              onClick={() => changeTab("hotels")}
             />
             <NavItem icon={<HomeIcon />} text="Homestays" />
             <NavItem icon={<Umbrella />} text="Holiday" />
@@ -272,8 +343,10 @@ export default function Home() {
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                   setdate(e.target.value)
                 }
-                subtitle="Select a date"
+                inputRef={dateRef}
+                subtitle="Select a date (optional)"
                 type="date"
+                min={todayKey}
               />
             </div>
 
@@ -287,17 +360,31 @@ export default function Home() {
                 }
                 subtitle="Number of travelers"
                 type="number"
+                min={1}
+                max={9}
               />
             </div>
 
-            <Button className="col-span-1 h-full" onClick={handlesearch}>
+            <Button className="col-span-1 h-full min-h-[56px]" onClick={handlesearch}>
               SEARCH
             </Button>
           </div>
-          <div className="mt-6">
-            <h2 className="text-xl font-semibold mb-4 text-white">
-              Search Results
-            </h2>
+          <div className="mt-6 min-h-[120px]">
+            {formError && (
+              <p role="alert" className="mb-4 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                {formError}
+              </p>
+            )}
+            {searched && !formError && (
+              <h2 className="text-xl font-semibold mb-3 text-gray-900">
+                Search Results
+              </h2>
+            )}
+            {notice && (
+              <p className="mb-4 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+                {notice}
+              </p>
+            )}
             {searchresults.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {searchresults.map((result) => (
@@ -363,11 +450,34 @@ export default function Home() {
                   </div>
                 ))}
               </div>
-            ) : (
+            ) : searched && !formError && suggested && bookingtype === "flights" ? (
+              <div>
+                <p className="text-sm text-gray-600 mb-2">Routes that are currently available (tap one to search it):</p>
+                <div className="flex flex-wrap gap-2">
+                  {routeSuggestions.map((r) => (
+                    <button
+                      key={`${r.from}-${r.to}`}
+                      className="rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-sm text-blue-700 hover:bg-blue-100"
+                      onClick={() => {
+                        setfrom(r.from);
+                        setto(r.to);
+                        setnotice("");
+                        setsuggested(false);
+                        setsearched(false);
+                      }}
+                    >
+                      {r.from} → {r.to}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ) : !searched ? (
               <p className="text-gray-600">
-                No {bookingtype} available for the selected criteria.
+                {bookingtype === "flights"
+                  ? "Choose where you are flying from and to, then press SEARCH."
+                  : "Choose a city and press SEARCH to see the hotels there."}
               </p>
-            )}
+            ) : null}
           </div>
         </div>
         <div className="max-w-7xl mx-auto px-4">
@@ -525,6 +635,9 @@ function SearchInput({
   onChange,
   subtitle,
   type = "text",
+  min,
+  max,
+  inputRef,
 }: any) {
   return (
     <div className="border rounded-lg p-3 hover:border-blue-500 cursor-pointer h-full">
@@ -533,7 +646,10 @@ function SearchInput({
         <div className="flex-1 min-w-0">
           <div className="text-sm text-gray-500 truncate">{placeholder}</div>
           <input
+            ref={inputRef}
             type={type}
+            min={min}
+            max={max}
             value={value}
             onChange={onChange}
             className="font-semibold w-full bg-transparent outline-none"

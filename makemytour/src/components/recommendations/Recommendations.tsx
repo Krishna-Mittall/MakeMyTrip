@@ -16,13 +16,16 @@ const Recommendations = () => {
   const [type, setType] = useState<"" | "HOTEL" | "FLIGHT" | "DESTINATION">("");
   const [loading, setLoading] = useState(true);
   const [hidden, setHidden] = useState<Set<string>>(new Set());
+  const hasData = useRef(false);
 
   const load = useCallback(
     async (silent = false) => {
-      if (!silent) setLoading(true);
+      // once something is on screen, refresh quietly instead of flashing a loading state
+      if (!silent && !hasData.current) setLoading(true);
       try {
         const d = await getRecommendations(user?.id, 6, type || undefined);
         setData(d);
+        hasData.current = true;
         setHidden(new Set());
       } catch (e) {
         // the section simply stays hidden when the backend is not reachable

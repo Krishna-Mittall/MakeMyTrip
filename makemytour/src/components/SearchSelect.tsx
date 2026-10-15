@@ -6,7 +6,6 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 
 export function SearchSelect({ options, placeholder, value, onChange, icon, subtitle }: any) {
   const [isOpen, setIsOpen] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
   const wrapperRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -21,15 +20,17 @@ export function SearchSelect({ options, placeholder, value, onChange, icon, subt
     };
   }, []);
 
-  const filteredOptions = options.filter((option:any) =>
-    option.label.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // the text in the box is the value itself, so typing a city name and pressing SEARCH works too
+  const typed = (value || '').toLowerCase();
+  const exact = options.some((o:any) => o.label.toLowerCase() === typed);
+  const filteredOptions = exact
+    ? options
+    : options.filter((option:any) => option.label.toLowerCase().includes(typed));
 
   return (
     <div ref={wrapperRef} className="relative">
       <div
         className="border rounded-lg p-3 hover:border-blue-500 cursor-pointer"
-        onClick={() => setIsOpen(!isOpen)}
       >
         <div className="flex items-center space-x-2">
           {icon}
@@ -37,10 +38,11 @@ export function SearchSelect({ options, placeholder, value, onChange, icon, subt
             <div className="text-sm text-gray-500 truncate">{placeholder}</div>
             <Input
               type="text"
-              value={value || searchTerm}
+              value={value || ''}
+              onFocus={() => setIsOpen(true)}
               onChange={(e) => {
-                setSearchTerm(e.target.value);
-                onChange('');
+                onChange(e.target.value);
+                setIsOpen(true);
               }}
               className="font-semibold w-full bg-transparent border-none p-0 focus-visible:ring-0 focus-visible:ring-offset-0"
               placeholder={placeholder}
@@ -51,7 +53,10 @@ export function SearchSelect({ options, placeholder, value, onChange, icon, subt
       </div>
       {isOpen && (
         <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg">
-          <ScrollArea className="h-64">
+          <ScrollArea className={filteredOptions.length > 6 ? "h-64" : "max-h-64"}>
+            {filteredOptions.length === 0 && (
+              <p className="px-3 py-2 text-sm text-gray-500">No matching city. Try another name.</p>
+            )}
             {filteredOptions.map((option:any) => (
               <Button
                 key={option.value}
@@ -59,7 +64,6 @@ export function SearchSelect({ options, placeholder, value, onChange, icon, subt
                 variant="ghost"
                 onClick={() => {
                   onChange(option.value);
-                  setSearchTerm('');
                   setIsOpen(false);
                 }}
               >
