@@ -64,6 +64,13 @@ const ReviewSection = ({ targetType, targetId, targetName, onChanged }: Props) =
     load();
   }, [load]);
 
+  // coming from "Read reviews" on a search card: jump straight to this section
+  useEffect(() => {
+    if (!loading && typeof window !== "undefined" && new URLSearchParams(window.location.search).get("reviews")) {
+      document.getElementById("reviews")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, [loading]);
+
   const mine = data?.reviews?.find((r: any) => r.mine);
   const summary = data?.summary;
   const changed = () => {

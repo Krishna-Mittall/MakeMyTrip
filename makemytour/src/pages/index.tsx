@@ -415,6 +415,14 @@ export default function Home() {
                           )}
                           <StatusChip status={result.liveStatus} />
                         </p>
+                        {result.reviewCount > 0 && (
+                          <button
+                            className="text-sm text-yellow-600 hover:underline text-left mt-1"
+                            onClick={() => router.push(`/book-flight/${result.id}?reviews=1`)}
+                          >
+                            ★ {result.avgRating.toFixed(1)} ({result.reviewCount} reviews) · Read reviews
+                          </button>
+                        )}
                         <Button
                           className="w-full mt-4"
                           onClick={() => handlebooknow(result.id)}
@@ -437,7 +445,12 @@ export default function Home() {
                           )}
                         </p>
                         {result.reviewCount > 0 && (
-                          <p className="text-sm text-yellow-600">★ {result.avgRating.toFixed(1)} ({result.reviewCount} reviews)</p>
+                          <button
+                            className="text-sm text-yellow-600 hover:underline text-left"
+                            onClick={() => router.push(`/book-hotel/${result.id}?reviews=1`)}
+                          >
+                            ★ {result.avgRating.toFixed(1)} ({result.reviewCount} reviews) · Read reviews
+                          </button>
                         )}
                         <Button
                           className="w-full mt-4"
