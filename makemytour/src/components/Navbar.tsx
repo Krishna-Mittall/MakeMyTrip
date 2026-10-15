@@ -21,6 +21,7 @@ const Navbar = () => {
   const router = useRouter();
   const logout = () => {
     dispatch(clearUser());
+    router.push("/");
   };
   return (
     <header className=" backdrop-blur-md py-4 sticky top-0 z-50">

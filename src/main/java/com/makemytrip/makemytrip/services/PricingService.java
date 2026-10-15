@@ -1,10 +1,12 @@
 package com.makemytrip.makemytrip.services;
 
 import com.makemytrip.makemytrip.exceptions.ApiException;
+import com.makemytrip.makemytrip.models.AppSetting;
 import com.makemytrip.makemytrip.models.Flight;
 import com.makemytrip.makemytrip.models.Hotel;
 import com.makemytrip.makemytrip.models.PriceFreeze;
 import com.makemytrip.makemytrip.models.PriceHistory;
+import com.makemytrip.makemytrip.repositories.AppSettingRepository;
 import com.makemytrip.makemytrip.repositories.FlightRepository;
 import com.makemytrip.makemytrip.repositories.HotelRepository;
 import com.makemytrip.makemytrip.repositories.PriceFreezeRepository;
@@ -37,7 +39,7 @@ public class PricingService {
     public static final String HOTEL = "HOTEL";
     private static final int[] FREEZE_HOURS = {6, 12, 24, 48};
     private static final int MAX_ACTIVE_FREEZES = 3;
-    private static final int MAX_HISTORY_POINTS = 400;
+    private static final int MAX_HISTORY_POINTS = 1500;
 
     @Autowired
     private FlightRepository flightRepository;
@@ -45,6 +47,8 @@ public class PricingService {
     private HotelRepository hotelRepository;
     @Autowired
     private PriceHistoryRepository historyRepository;
+    @Autowired
+    private AppSettingRepository settingRepository;
     @Autowired
     private PriceFreezeRepository freezeRepository;
     @Autowired
@@ -355,46 +359,66 @@ public class PricingService {
         return out;
     }
 
+    /**
+     * Makes sure that the graph has something to show for 7, 30 and 60 days: daily points for the last 60 days and a point
+     * every 6 hours for the last 7 days (so that the 7 day view is more detailed than the 30 and 60 day views).
+     * Items that were seen before this was added get the missing points once (an "app_settings" marker remembers it).
+     */
     private void ensureHistory(String type, String id, PriceQuote now, double base, double occupancy, boolean hotel, Instant dep) {
-        if (historyRepository.countByItemTypeAndItemId(type, id) > 0) {
+        String marker = "price-history-v2:" + type + ":" + id;
+        if (settingRepository.existsById(marker)) {
             return;
         }
-        // first time this item is seen: fill the last 30 days so that the graph is not empty
-        ZonedDateTime current = TimeUtil.now();
+        boolean fresh = historyRepository.countByItemTypeAndItemId(type, id) == 0;
         List<PriceHistory> points = new ArrayList<>();
-        for (int d = 30; d >= 1; d--) {
-            ZonedDateTime ts = current.minusDays(d);
-            LocalDate date = hotel ? ts.toLocalDate() : (dep != null ? TimeUtil.toLocalDate(dep) : ts.toLocalDate());
-            double occ = occupancy * Math.max(0.25, 1 - d / 40.0);
-            double pct = PricingRules.demandPercent(occ, 0);
-            if (PricingRules.holidayName(date) != null || PricingRules.peakSeasonName(date) != null) {
-                pct += PricingRules.HOLIDAY_PERCENT;
+        for (int d = 60; d >= 1; d--) {
+            if (fresh || d > 30) {          // the older items already have the last 30 days
+                points.add(backfillPoint(type, id, base, occupancy, hotel, dep, d * 24));
             }
-            pct += PricingRules.weekendPercent(date, hotel);
-            if (!hotel && dep != null) {
-                pct += PricingRules.flightLeadPercent(Duration.between(ts.toInstant(), dep).toHours());
-            }
-            pct += ((Math.abs((id + d).hashCode()) % 500) / 100.0) - 2.5;   // small day-to-day movement
-            PriceHistory p = new PriceHistory();
-            p.setItemType(type);
-            p.setItemId(id);
-            p.setBasePrice(base);
-            p.setPrice(Math.round(base * PricingRules.multiplierFor(pct)));
-            p.setTimestamp(ts.toInstant());
-            p.setReason("Earlier price");
-            p.setSource("backfill");
-            points.add(p);
         }
-        PriceHistory live = new PriceHistory();
-        live.setItemType(type);
-        live.setItemId(id);
-        live.setBasePrice(base);
-        live.setPrice(now.getCurrentPrice());
-        live.setTimestamp(Instant.now());
-        live.setReason(topReason(now));
-        live.setSource("live");
-        points.add(live);
+        for (int k = 28; k >= 1; k--) {
+            if (k % 4 != 0) {               // the points at whole days are the daily points
+                points.add(backfillPoint(type, id, base, occupancy, hotel, dep, k * 6));
+            }
+        }
+        if (fresh) {
+            PriceHistory live = new PriceHistory();
+            live.setItemType(type);
+            live.setItemId(id);
+            live.setBasePrice(base);
+            live.setPrice(now.getCurrentPrice());
+            live.setTimestamp(Instant.now());
+            live.setReason(topReason(now));
+            live.setSource("live");
+            points.add(live);
+        }
         historyRepository.saveAll(points);
+        settingRepository.save(new AppSetting(marker, Instant.now().toString()));
+    }
+
+    private PriceHistory backfillPoint(String type, String id, double base, double occupancy, boolean hotel, Instant dep, int hoursAgo) {
+        ZonedDateTime ts = TimeUtil.now().minusHours(hoursAgo);
+        double daysAgo = hoursAgo / 24.0;
+        LocalDate date = hotel ? ts.toLocalDate() : (dep != null ? TimeUtil.toLocalDate(dep) : ts.toLocalDate());
+        double occ = occupancy * Math.max(0.25, 1 - daysAgo / 40.0);
+        double pct = PricingRules.demandPercent(occ, 0);
+        if (PricingRules.holidayName(date) != null || PricingRules.peakSeasonName(date) != null) {
+            pct += PricingRules.HOLIDAY_PERCENT;
+        }
+        pct += PricingRules.weekendPercent(date, hotel);
+        if (!hotel && dep != null) {
+            pct += PricingRules.flightLeadPercent(Duration.between(ts.toInstant(), dep).toHours());
+        }
+        pct += ((Math.abs((id + "@" + hoursAgo).hashCode()) % 500) / 100.0) - 2.5;   // small movement from point to point
+        PriceHistory p = new PriceHistory();
+        p.setItemType(type);
+        p.setItemId(id);
+        p.setBasePrice(base);
+        p.setPrice(Math.round(base * PricingRules.multiplierFor(pct)));
+        p.setTimestamp(ts.toInstant());
+        p.setReason("Earlier price");
+        p.setSource("backfill");
+        return p;
     }
 
     private String topReason(PriceQuote q) {

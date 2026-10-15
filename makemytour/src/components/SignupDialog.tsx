@@ -13,7 +13,9 @@ import { Input } from "./ui/input";
 import { signup, login } from "../api";
 import { setUser } from "@/store";
 import { useDispatch } from "react-redux";
-const SignupDialog = ({trigger, defaultMode = "signup"}:any) => {
+import { useRouter } from "next/router";
+const SignupDialog = ({trigger, defaultMode = "signup", redirectHome = true}:any) => {
+  const router = useRouter();
   const [isSignup, setIsSignup] = useState(defaultMode !== "login");
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
@@ -61,6 +63,8 @@ const SignupDialog = ({trigger, defaultMode = "signup"}:any) => {
         dispatch(setUser(data));
         setopem(false);
         clearform();
+        // after a login (also when somebody switches to another account) start again from the home page
+        if (redirectHome) router.push("/");
       } catch (error) {
         console.log(error);
         setError("Could not log in right now. Please try again in a moment.");

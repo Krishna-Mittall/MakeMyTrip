@@ -107,7 +107,11 @@ const FlightStatusPage = () => {
     }
   };
 
-  const open = (id: string) => router.push(`/flight-status?flight=${id}`, undefined, { shallow: true });
+  // the details open at the top of the page: scroll up so that they are not hidden above the list
+  const open = (id: string) => {
+    router.push(`/flight-status?flight=${id}`, undefined, { shallow: true });
+    if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
+  };
 
   return (
     <div className="min-h-screen bg-[#f4f7fa]">

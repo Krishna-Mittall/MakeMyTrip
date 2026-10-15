@@ -554,6 +554,7 @@ const BookHotelPage = () => {
                     </DialogHeader>
                     <p>Please log in to continue with your booking.</p>
                     <SignupDialog
+                      redirectHome={false}
                       trigger={
                         <Button className="w-full">Log In / Sign Up</Button>
                       }

@@ -52,6 +52,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Users, Ticket } from "lucide-react";
 import SignupDialog from "@/components/SignupDialog";
+import FareRulesDialog from "@/components/booking/FareRulesDialog";
 import Loader from "@/components/Loader";
 import { setUser } from "@/store";
 const BookFlightPage = () => {
@@ -69,6 +70,7 @@ const BookFlightPage = () => {
   const [status, setStatus] = useState<any>(null);
   const [bookingError, setBookingError] = useState("");
   const [booking, setBooking] = useState(false);
+  const [fareRulesOpen, setFareRulesOpen] = useState(false);
 
   // the live status of this flight (and updates while the page is open)
   useEffect(() => {
@@ -82,20 +84,26 @@ const BookFlightPage = () => {
     if (user?.id && typeof id === "string") logInteraction(user.id, "VIEW", "FLIGHT", id);
   }, [user?.id, id]);
   useEffect(() => {
+    // wait until the router knows the flight id, and ignore answers that arrive late (otherwise an old
+    // request without an id could replace the flight and the page said "No flight data available")
+    if (!router.isReady || typeof id !== "string") return;
+    let cancelled = false;
     const fetchFlights = async () => {
       try {
         const data = await getflight();
-        const filteredData = data.filter((flight: any) => flight.id === id);
-        setFlights(filteredData);
-        console.log(filteredData);
+        if (cancelled) return;
+        setFlights(data.filter((flight: any) => flight.id === id));
       } catch (error) {
         console.error("Error fetching flights:", error);
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     };
     fetchFlights();
-  }, [id, user]);
+    return () => {
+      cancelled = true;
+    };
+  }, [router.isReady, id, user]);
 
   if (loading) {
     return <Loader />;
@@ -388,7 +396,7 @@ const BookFlightPage = () => {
                     <span>Non Stop - {flightDetails.duration}</span>
                   </div>
                 </div>
-                <button className="text-blue-600 text-sm font-medium hover:text-blue-700 flex items-center">
+                <button type="button" onClick={() => setFareRulesOpen(true)} className="text-blue-600 text-sm font-medium hover:text-blue-700 hover:underline flex items-center">
                   <Info className="w-4 h-4 mr-1" />
                   View Fare Rules
                 </button>
@@ -503,12 +511,20 @@ const BookFlightPage = () => {
                   <AlertCircle className="w-5 h-5 mr-2 text-orange-500" />
                   Cancellation & Date Change Policy
                 </h2>
-                <button className="text-blue-600 text-sm font-medium hover:text-blue-700">
+                <button type="button" onClick={() => setFareRulesOpen(true)} className="text-blue-600 text-sm font-medium hover:text-blue-700 hover:underline">
                   View Policy
                 </button>
               </div>
               <RefundPolicyBlock type="flight" />
             </div>
+
+            <FareRulesDialog
+              open={fareRulesOpen}
+              onOpenChange={setFareRulesOpen}
+              route={`${flight.from} → ${flight.to}`}
+              cabinBaggage={flightDetails.cabinBaggage}
+              checkInBaggage={flightDetails.checkInBaggage}
+            />
 
             {/* Choose your seats */}
             <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6">
@@ -654,6 +670,7 @@ const BookFlightPage = () => {
                     </DialogHeader>
                     <p>Please log in to continue with your booking.</p>
                     <SignupDialog
+                      redirectHome={false}
                       trigger={
                         <Button className="w-full">Log In / Sign Up</Button>
                       }

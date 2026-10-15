@@ -270,6 +270,23 @@ const SeatMap = ({ flightId, selected, onChange, max = 9 }: Props) => {
         )}
       </div>
 
+      {user && selected.length === 0 && (prefs.seatPosition !== "ANY" || prefs.seatTier !== "ANY") && (() => {
+        const best = map.seats.find((s: any) => matches(s));
+        if (!best) return null;
+        return (
+          <div className="rounded-lg border border-pink-300 bg-pink-50 p-3 text-sm flex flex-wrap items-center justify-between gap-2" data-testid="seat-suggestion">
+            <span className="text-pink-900">
+              <Heart className="w-4 h-4 inline mr-1" />
+              Your saved preference ({[prefs.seatPosition !== "ANY" && prefs.seatPosition.toLowerCase(), prefs.seatTier !== "ANY" && tierName[prefs.seatTier].toLowerCase()].filter(Boolean).join(", ")}):
+              seat <b>{best.seatNumber}</b> is free{best.extraCharge ? ` (+${inr(best.extraCharge)})` : ""}.
+            </span>
+            <button type="button" onClick={() => hold([best.seatNumber])} className="px-3 py-1 rounded-md bg-pink-600 text-white hover:bg-pink-700">
+              Select seat {best.seatNumber}
+            </button>
+          </div>
+        );
+      })()}
+
       {/* legend */}
       <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-600">
         {["PREMIUM", "EXTRA_LEGROOM", "STANDARD"].map((t) => (

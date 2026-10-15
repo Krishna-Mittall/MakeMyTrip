@@ -22,6 +22,7 @@ import { useEvents } from "@/hooks/useEvents";
 import BookingExtras from "@/components/cancellation/BookingExtras";
 import RefundTracker from "@/components/cancellation/RefundTracker";
 import TrackedFlights from "@/components/flight/TrackedFlights";
+import PreferencesCard from "@/components/booking/PreferencesCard";
 const index = () => {
   const dispatch = useDispatch();
   const user = useSelector((state: any) => state.user.user);
@@ -251,6 +252,7 @@ const index = () => {
           {/* Bookings Section */}
           <div className="md:col-span-2 space-y-8">
             <TrackedFlights />
+            <PreferencesCard />
             <RefundTracker refunds={refunds} />
             <div className="bg-white rounded-xl shadow-lg p-6">
               <h2 className="text-2xl font-bold mb-6">My Bookings</h2>

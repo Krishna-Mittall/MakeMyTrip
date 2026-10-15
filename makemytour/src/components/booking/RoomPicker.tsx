@@ -182,6 +182,15 @@ const RoomPicker = ({ hotelId, stayDate, selected, onSelect }: Props) => {
                   >
                     <Box className="w-4 h-4" /> 3D / Photos
                   </button>
+                  <button
+                    type="button"
+                    onClick={() => savePreferred(room.name)}
+                    aria-label={`Save ${room.name} as my preferred room`}
+                    title={preferred === room.name ? "Your preferred room" : "Save as my preferred room"}
+                    className={`px-2.5 py-1.5 rounded-md border ${preferred === room.name ? "bg-pink-50 border-pink-300 text-pink-600" : "hover:bg-gray-50 text-gray-500"}`}
+                  >
+                    <Heart className={`w-4 h-4 ${preferred === room.name ? "fill-pink-500" : ""}`} />
+                  </button>
                 </div>
               </div>
             </div>
