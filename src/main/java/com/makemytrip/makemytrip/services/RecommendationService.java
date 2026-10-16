@@ -707,7 +707,7 @@ public class RecommendationService {
             why.add("It fits the premium seat / room preference you saved.");
         }
         if (personalised && cf > 0.2 && peers > 0) {
-            why.add(peers + " traveller" + (peers == 1 ? "" : "s") + " with similar trips to yours booked or looked at this (up to " + Math.round(topSim * 100) + "% similar).");
+            why.add(peers + " traveller" + (peers == 1 ? "" : "s") + " with similar trips to yours booked or looked at this (up to " + Math.min(99, Math.round(topSim * 100)) + "% similar).");
             algorithms.add("Collaborative filtering");
         }
         if (it.getReviewCount() > 0) {

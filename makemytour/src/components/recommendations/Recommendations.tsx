@@ -125,18 +125,34 @@ const Recommendations = () => {
 };
 
 const RecoCard = ({ item, onOpen, onFeedback }: { item: any; onOpen: () => void; onFeedback: (v: "HELPFUL" | "IRRELEVANT") => void }) => {
-  const [tip, setTip] = useState(false);
+  // hover shows the tooltip with a mouse; a tap / click / keyboard press pins it open (works on phones too)
+  const [hover, setHover] = useState(false);
+  const [pinned, setPinned] = useState(false);
+  const tip = hover || pinned;
   const box = useRef<HTMLDivElement>(null);
   const isHotel = item.type === "HOTEL";
   const isDestination = item.type === "DESTINATION";
 
   useEffect(() => {
     if (!tip) return;
-    const close = (e: MouseEvent) => {
-      if (box.current && !box.current.contains(e.target as Node)) setTip(false);
+    const close = (e: Event) => {
+      if (box.current && !box.current.contains(e.target as Node)) {
+        setPinned(false);
+        setHover(false);
+      }
     };
-    document.addEventListener("mousedown", close);
-    return () => document.removeEventListener("mousedown", close);
+    const esc = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setPinned(false);
+        setHover(false);
+      }
+    };
+    document.addEventListener("pointerdown", close);
+    document.addEventListener("keydown", esc);
+    return () => {
+      document.removeEventListener("pointerdown", close);
+      document.removeEventListener("keydown", esc);
+    };
   }, [tip]);
 
   return (
@@ -195,21 +211,26 @@ const RecoCard = ({ item, onOpen, onFeedback }: { item: any; onOpen: () => void;
           </button>
 
           {/* why this recommendation? */}
-          <div className="relative" ref={box} onMouseEnter={() => setTip(true)} onMouseLeave={() => setTip(false)}>
+          <div
+            className="relative"
+            ref={box}
+            onPointerEnter={(e) => e.pointerType === "mouse" && setHover(true)}
+            onPointerLeave={(e) => e.pointerType === "mouse" && setHover(false)}
+          >
             <button
-              onClick={() => setTip(!tip)}
-              onFocus={() => setTip(true)}
+              onClick={() => setPinned((v) => !v)}
               aria-expanded={tip}
               aria-describedby={tip ? `why-${item.key}` : undefined}
+              data-testid="why-button"
               className="inline-flex items-center gap-1 text-xs text-gray-600 hover:text-blue-700 px-2 py-1.5 rounded-md hover:bg-gray-100"
             >
-              <Info className="w-4 h-4" /> Why this?
+              <Info className="w-4 h-4 shrink-0" /> Why this recommendation?
             </button>
             {tip && (
               <div
                 id={`why-${item.key}`}
                 role="tooltip"
-                className="absolute bottom-full right-0 mb-2 w-72 max-w-[80vw] z-20 bg-gray-900 text-white text-xs rounded-lg p-3 shadow-xl"
+                className="absolute bottom-full right-0 mb-2 w-72 max-w-[calc(100vw-4rem)] z-20 bg-gray-900 text-white text-xs rounded-lg p-3 shadow-xl"
               >
                 <div className="font-semibold text-sm mb-1">Why this recommendation?</div>
                 <ul className="space-y-1.5 list-disc pl-4">
