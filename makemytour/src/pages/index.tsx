@@ -1,6 +1,7 @@
 import { getflight, gethotel } from "@/api";
 import { logInteraction } from "@/api/extra";
 import Recommendations from "@/components/recommendations/Recommendations";
+import PriceAlerts from "@/components/booking/PriceAlerts";
 import StatusChip from "@/components/flight/StatusChip";
 import { useEvents } from "@/hooks/useEvents";
 import Loader from "@/components/Loader";
@@ -494,6 +495,9 @@ export default function Home() {
           </div>
         </div>
         <div className="max-w-7xl mx-auto px-4">
+          {/* Holidays and peak periods that raise the prices */}
+          <PriceAlerts />
+
           {/* Personalised recommendations */}
           <Recommendations />
 

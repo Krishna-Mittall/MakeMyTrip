@@ -19,6 +19,7 @@ import { gethotel, handlehotelbooking } from "@/api";
 import { errorMessage, logInteraction } from "@/api/extra";
 import RoomPicker from "@/components/booking/RoomPicker";
 import PriceInsight from "@/components/booking/PriceInsight";
+import PriceCalendar from "@/components/booking/PriceCalendar";
 import ReviewSection from "@/components/reviews/ReviewSection";
 import RefundPolicyBlock from "@/components/cancellation/RefundPolicyBlock";
 import { toast } from "@/lib/toast";
@@ -443,6 +444,7 @@ const BookHotelPage = () => {
                   />
                 </label>
               </div>
+              <PriceCalendar hotelId={hotel.id} selected={checkIn} onPick={setCheckIn} />
               <RoomPicker
                 hotelId={hotel.id}
                 stayDate={checkIn}

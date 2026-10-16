@@ -41,6 +41,11 @@ public class PricingController {
         return pricingService.quoteHotelForUser(id, date(stayDate), userId);
     }
 
+    @GetMapping("/hotel/{id}/calendar")
+    public List<Map<String, Object>> calendar(@PathVariable String id, @RequestParam(defaultValue = "14") int days) {
+        return pricingService.hotelCalendar(id, days);
+    }
+
     @GetMapping("/history/{type}/{id}")
     public Map<String, Object> history(@PathVariable String type, @PathVariable String id,
                                        @RequestParam(defaultValue = "30") int days) {

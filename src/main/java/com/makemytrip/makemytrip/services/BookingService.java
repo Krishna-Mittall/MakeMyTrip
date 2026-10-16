@@ -115,6 +115,7 @@ public class BookingService {
                 userRepository.save(user);
 
                 pricingService.markFreezeUsed(freeze, reference);
+                pricingService.recordBooking(PricingService.FLIGHT, flightId, seats);
                 pricingService.publishPrice(PricingService.FLIGHT, flightId);
                 try {
                     flightStatusService.track(userId, flightId, "BOOKING", reference);   // follow the booked flight automatically
@@ -192,6 +193,7 @@ public class BookingService {
 
                 pricingService.markFreezeUsed(freeze, booking.getReference());
                 eventHub.publish("ROOM_UPDATE", Map.of("hotelId", hotelId));
+                pricingService.recordBooking(PricingService.HOTEL, hotelId, rooms);
                 pricingService.publishPrice(PricingService.HOTEL, hotelId);
                 try {
                     recommendationService.log(userId, "HOTEL", hotelId, "BOOK", null);

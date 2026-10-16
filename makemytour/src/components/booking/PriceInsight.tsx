@@ -150,6 +150,17 @@ const PriceInsight = ({ type, itemId, stayDate, onQuote, compact }: Props) => {
         </p>
       )}
 
+      {quote.outlook && (
+        <p className={`text-sm rounded-lg px-3 py-2 flex items-start gap-2 ${quote.outlook.deltaPercent > 0 ? "text-orange-800 bg-orange-50" : "text-green-800 bg-green-50"}`} data-testid="price-outlook">
+          <TrendingUp className="w-4 h-4 mt-0.5 shrink-0" />
+          <span>
+            In {quote.outlook.inHours >= 48 ? `${Math.round(quote.outlook.inHours / 24)} days` : `${quote.outlook.inHours} hours`} the price is
+            expected to {quote.outlook.deltaPercent > 0 ? "rise" : "fall"} by {Math.abs(quote.outlook.deltaPercent)}% ({quote.outlook.label.toLowerCase()}).
+            {quote.outlook.deltaPercent > 0 && !freeze ? " Freeze the price to keep today's rate." : ""}
+          </span>
+        </p>
+      )}
+
       {/* price freeze */}
       <div className={`rounded-xl border p-3 ${freeze ? "border-blue-300 bg-blue-50" : "bg-white"}`}>
         {freeze ? (

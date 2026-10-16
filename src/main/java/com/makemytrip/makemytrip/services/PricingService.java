@@ -73,6 +73,16 @@ public class PricingService {
         private String detail;
     }
 
+    /** What is going to change next in the price of an item, so that the price is predictable. */
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class Outlook {
+        private long inHours;
+        private double deltaPercent;
+        private String label;
+    }
+
     @Data
     @NoArgsConstructor
     public static class PriceQuote {
@@ -88,6 +98,7 @@ public class PricingService {
         private String forDate;
         private String computedAt;
         private PriceFreeze freeze;   // the active freeze of the requesting user, if any
+        private Outlook outlook;      // the next step in the price because of the booking date (null if none)
     }
 
     // ------------------------------------------------------------------ quotes
@@ -149,12 +160,67 @@ public class PricingService {
         quote.setFactors(factors);
         quote.setForDate(date.toString());
         quote.setComputedAt(Instant.now().toString());
+        quote.setOutlook(outlookFor(hotel, lead));
         Double change = trendPercent.get(type + ":" + id);
         if (change != null) {
             quote.setChangePercent(Math.round(change * 10.0) / 10.0);
             quote.setTrend(change > 0.5 ? "UP" : change < -0.5 ? "DOWN" : "STABLE");
         }
         return quote;
+    }
+
+    private static final long[] FLIGHT_STEPS = {24 * 45, 168, 72, 24};   // hours before departure where the lead-time price changes
+    private static final long[] HOTEL_STEPS = {30, 2};                    // days before check-in where the lead-time price changes
+
+    /** The next change of the lead-time part of the price ("in 2 days the price goes up by 6%"). */
+    static Outlook outlookFor(boolean hotel, long lead) {
+        long[] steps = hotel ? HOTEL_STEPS : FLIGHT_STEPS;
+        for (long step : steps) {
+            if (lead > step) {
+                double now = hotel ? PricingRules.hotelLeadPercent(lead) : PricingRules.flightLeadPercent(lead);
+                double next = hotel ? PricingRules.hotelLeadPercent(step) : PricingRules.flightLeadPercent(step - 1);
+                double delta = next - now;
+                if (delta == 0) {
+                    continue;
+                }
+                long hours = hotel ? (lead - step) * 24 : lead - step;
+                String label = delta < 0 ? "Price drops"
+                        : ((hotel ? step <= 2 : step <= 168) ? "Last-minute pricing starts" : "The early-bird discount ends");
+                return new Outlook(Math.max(hours, 1), delta, label);
+            }
+        }
+        return null;
+    }
+
+    /** The price of a hotel for the next days (holidays and weekends show up), used for the price calendar. */
+    public List<Map<String, Object>> hotelCalendar(String hotelId, int days) {
+        Hotel hotel = hotelRepository.findById(hotelId).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Hotel not found"));
+        LocalDate today = TimeUtil.now().toLocalDate();
+        List<Map<String, Object>> out = new ArrayList<>();
+        for (int i = 0; i < Math.max(1, Math.min(days, 45)); i++) {
+            LocalDate date = today.plusDays(i);
+            PriceQuote q = quoteHotel(hotel, date);
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("date", date.toString());
+            m.put("price", q.getCurrentPrice());
+            m.put("percent", q.getTotalPercent());
+            String tag = null;
+            for (Factor f : q.getFactors()) {
+                if (f.getCode().equals("HOLIDAY") || f.getCode().equals("PEAK")) {
+                    tag = f.getLabel().replaceFirst("^(Holiday|Peak season): ", "");
+                    break;
+                }
+            }
+            m.put("tag", tag);
+            m.put("weekend", q.getFactors().stream().anyMatch(f -> f.getCode().equals("WEEKEND")));
+            out.add(m);
+        }
+        return out;
+    }
+
+    /** A booking makes the item busier: the price reacts at once and the effect fades away in some minutes. */
+    public void recordBooking(String type, String id, int units) {
+        pressure.merge(type + ":" + id, Math.min(6.0, Math.max(1, units) * 1.5), (a, b) -> Math.min(8.0, a + b));
     }
 
     public PriceQuote quoteFlightForUser(String flightId, String userId) {

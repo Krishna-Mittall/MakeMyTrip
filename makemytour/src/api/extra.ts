@@ -38,6 +38,7 @@ export const createFreeze = (userId: string, type: string, itemId: string, hours
 export const getFreezes = (userId: string) => get(`/pricing/freezes`, { userId });
 export const cancelFreeze = (id: string, userId: string) => del(`/pricing/freeze/${id}`, { userId });
 export const getSurges = () => get(`/pricing/surges`);
+export const getHotelCalendar = (hotelId: string, days = 14) => get(`/pricing/hotel/${hotelId}/calendar`, { days });
 
 // ---- cancellation and refunds
 export const getCancelReasons = () => get(`/cancellation/reasons`);
