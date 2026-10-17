@@ -50,15 +50,17 @@ public class BookingService {
 
     @Autowired
     private RecommendationService recommendationService;
+    @Autowired
+    private PromoService promoService;
 
     @Autowired
     private EventHub eventHub;
 
     public Booking bookFlight(String userId,String flightId,int seats,double price){
-        return bookFlight(userId,flightId,seats,price,null,null);
+        return bookFlight(userId,flightId,seats,price,null,null,null);
     }
 
-    public synchronized Booking bookFlight(String userId,String flightId,int seats,double price,String seatNumbers,String freezeId){
+    public synchronized Booking bookFlight(String userId,String flightId,int seats,double price,String seatNumbers,String freezeId,String promoCode){
         Optional<Users> usersOptional =userRepository.findById(userId);
         Optional<Flight> flightOptional =flightRepository.findById(flightId);
         if(usersOptional.isPresent() && flightOptional.isPresent()){
@@ -90,6 +92,12 @@ public class BookingService {
                     throw new ApiException(HttpStatus.CONFLICT, "The price has changed to Rs " + Math.round(minimum)
                             + " (before taxes). Please review the fare and try again.");
                 }
+                // promo code: it was checked when it was applied and is checked again here
+                PromoService.Promo promo = null;
+                if(promoCode != null && !promoCode.isBlank()){
+                    promo = promoService.find(promoCode, "FLIGHT");
+                    promoService.validate(promoCode, "FLIGHT", price + promo.discount);
+                }
                 seatService.confirm(flight, seatList, userId, reference);
 
                 flight.setAvailableSeats(flight.getAvailableSeats()- seats);
@@ -111,6 +119,10 @@ public class BookingService {
                 booking.setUnitPrice(unit);
                 booking.setSeatCharges(seatCharges);
                 booking.setSeats(seatList);
+                if(promo != null){
+                    booking.setPromoCode(promo.code);
+                    booking.setPromoDiscount(promo.discount);
+                }
                 user.getBookings().add(booking);
                 userRepository.save(user);
 

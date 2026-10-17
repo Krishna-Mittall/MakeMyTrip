@@ -68,4 +68,5 @@ Tests: `./mvnw test -Dtest='RefundPolicyTest,PricingRulesTest,RecommendationMath
 
 ## Notes
 * Refund policy: cancelled within 24 hours of the reservation (booking time) -> 50 % of the booking amount. After that the time left decides: flights 90 % (72h+ before departure), 75 % (24-72h), 25 % (3-24h), 0 % (<3h); hotels 100 % (72h+), 75 % (24-72h), 25 % (<24h). Partial cancellation (single seats/rooms) is supported. In the demo the refund tracker moves PENDING -> PROCESSED -> COMPLETED within minutes; real timelines are shown as "expected" text.
+* Promo codes (flights): MMTSECURE (₹299 off, booking total ≥ ₹3,000) and SPECIALUPI (₹362 off, booking total ≥ ₹5,000), checked by the backend (`/promo/*`) when applied and again when the booking is made.
 * Flight data comes from a built-in mock flight API; price history before the app was first run is generated for the demo.

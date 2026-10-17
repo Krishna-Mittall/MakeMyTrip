@@ -13,10 +13,11 @@ import {
   Star,
   Info,
   ArrowRight,
+  Check,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { getflight, handleflightbooking } from "@/api";
-import { errorMessage, getFlightStatus, logInteraction, trackFlight, untrackFlight } from "@/api/extra";
+import { errorMessage, getFlightStatus, getPromoOffers, logInteraction, trackFlight, untrackFlight, validatePromo } from "@/api/extra";
 import SeatMap from "@/components/booking/SeatMap";
 import PriceInsight from "@/components/booking/PriceInsight";
 import ReviewSection from "@/components/reviews/ReviewSection";
@@ -71,6 +72,15 @@ const BookFlightPage = () => {
   const [bookingError, setBookingError] = useState("");
   const [booking, setBooking] = useState(false);
   const [fareRulesOpen, setFareRulesOpen] = useState(false);
+  const [promoOffers, setPromoOffers] = useState<any[]>([]);
+  const [promoInput, setPromoInput] = useState("");
+  const [promo, setPromo] = useState<any>(null);
+  const [promoError, setPromoError] = useState("");
+  const [promoBusy, setPromoBusy] = useState(false);
+  const [termsOpen, setTermsOpen] = useState("");
+  useEffect(() => {
+    getPromoOffers("FLIGHT").then(setPromoOffers).catch(() => null);
+  }, []);
 
   // the live status of this flight (and updates while the page is open)
   useEffect(() => {
@@ -136,21 +146,6 @@ const BookFlightPage = () => {
     total: 7497,
   };
 
-  const promoOffers = [
-    {
-      code: "MMTSECURE",
-      description:
-        "Get an instant discount of ₹299 on your flight booking and Trip Secure with this coupon!",
-      amount: 299,
-    },
-    {
-      code: "SPECIALUPI",
-      description:
-        "Use this code and get ₹362 instant discount on payments via UPI only!",
-      amount: 362,
-    },
-  ];
-
   const hotels = [
     {
       name: "Hotel Park Tree",
@@ -204,8 +199,28 @@ const BookFlightPage = () => {
   const totalTaxes = fareSummary?.taxes * qty;
   const totalOtherServices = fareSummary?.otherServices * qty;
   const totalDiscounts = (priceInfo?.saving || 0) * qty;
-  const grandTotal =
-    totalPrice + seatCharges + totalTaxes + totalOtherServices - totalDiscounts;
+  // the total before a promo code, and the promo discount (only while the minimum booking amount is met)
+  const subtotal = totalPrice + seatCharges + totalTaxes + totalOtherServices - totalDiscounts;
+  const promoDiscount = promo && subtotal >= promo.minAmount ? promo.discount : 0;
+  const grandTotal = subtotal - promoDiscount;
+  const applyPromo = async (code: string) => {
+    setPromoError("");
+    setPromoBusy(true);
+    try {
+      const p = await validatePromo(code, Math.round(subtotal), "FLIGHT");
+      setPromo(p);
+      setPromoInput("");
+    } catch (e) {
+      setPromo(null);
+      setPromoError(errorMessage(e));
+    } finally {
+      setPromoBusy(false);
+    }
+  };
+  const removePromo = () => {
+    setPromo(null);
+    setPromoError("");
+  };
   const durationMinutes = Math.round(
     (new Date(flight.arrivalTime).getTime() - new Date(flight.departureTime).getTime()) / 60000
   );
@@ -222,7 +237,8 @@ const BookFlightPage = () => {
         qty,
         grandTotal,
         selectedSeats,
-        priceInfo?.freezeId
+        priceInfo?.freezeId,
+        promoDiscount > 0 ? promo.code : undefined
       );
       const updateuser = {
         ...user,
@@ -347,6 +363,12 @@ const BookFlightPage = () => {
                 - ₹ {Math.abs(totalDiscounts).toLocaleString()}
               </span>
             </div>
+            {promoDiscount > 0 && (
+              <div className="flex justify-between items-center text-green-600">
+                <span className="font-medium">Promo code ({promo.code})</span>
+                <span className="font-medium">- ₹ {promoDiscount.toLocaleString()}</span>
+              </div>
+            )}
             <div className="border-t pt-2 mt-2">
               <div className="flex justify-between items-center">
                 <span className="font-bold text-lg">Total Amount</span>
@@ -646,6 +668,12 @@ const BookFlightPage = () => {
                     - ₹ {Math.abs(totalDiscounts).toLocaleString()}
                   </span>
                 </div>
+                {promoDiscount > 0 && (
+                  <div className="flex justify-between items-center text-green-600">
+                    <span className="font-medium">Promo code ({promo.code})</span>
+                    <span className="font-medium">- ₹ {promoDiscount.toLocaleString()}</span>
+                  </div>
+                )}
                 <div className="border-t pt-2 mt-2">
                   <div className="flex justify-between items-center">
                     <span className="font-bold text-lg">Total Amount</span>
@@ -679,44 +707,94 @@ const BookFlightPage = () => {
                 )}
               </Dialog>
               {/* Promo Codes */}
-              <div className="mt-8">
+              <div className="mt-8" data-testid="promo-codes">
                 <div className="bg-[#FFF8E7] p-6 rounded-xl">
                   <h3 className="font-bold mb-4 flex items-center">
                     <Gift className="w-5 h-5 mr-2 text-yellow-600" />
                     PROMO CODES
                   </h3>
-                  <div className="relative mb-4">
-                    <input
-                      type="text"
-                      placeholder="Enter promo code here"
-                      className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors"
-                    />
-                  </div>
-                  {promoOffers.map((offer, index) => (
-                    <div
-                      key={index}
-                      className="bg-white p-4 rounded-lg mb-3 shadow-sm"
-                    >
-                      <div className="flex items-start gap-3">
-                        <input
-                          type="radio"
-                          name="promo"
-                          className="mt-1.5 h-4 w-4 text-red-600 focus:ring-red-500"
-                        />
-                        <div>
-                          <div className="font-semibold text-red-600">
-                            {offer.code}
-                          </div>
-                          <p className="text-sm text-gray-600 mt-1">
-                            {offer.description}
-                          </p>
-                          <button className="text-blue-600 text-sm font-medium mt-2 hover:text-blue-700">
-                            Terms & Conditions
-                          </button>
-                        </div>
-                      </div>
+                  {promo ? (
+                    <div className="mb-4 flex items-center justify-between gap-3 rounded-lg bg-green-50 border border-green-200 px-4 py-3 text-green-800" data-testid="promo-applied">
+                      <span className="flex items-center gap-2 text-sm">
+                        <Check className="w-4 h-4 shrink-0" />
+                        <span>
+                          <b>{promo.code}</b> applied
+                          {promoDiscount > 0 ? ` - you save ₹${promoDiscount.toLocaleString()}` : ` - add more to your booking (minimum ₹${Math.round(promo.minAmount).toLocaleString()})`}
+                        </span>
+                      </span>
+                      <button onClick={removePromo} className="text-sm underline shrink-0">
+                        Remove
+                      </button>
                     </div>
-                  ))}
+                  ) : (
+                    <form
+                      className="flex gap-2 mb-2"
+                      onSubmit={(e) => {
+                        e.preventDefault();
+                        if (promoInput.trim()) applyPromo(promoInput.trim());
+                      }}
+                    >
+                      <input
+                        type="text"
+                        value={promoInput}
+                        onChange={(e) => {
+                          setPromoInput(e.target.value.toUpperCase());
+                          setPromoError("");
+                        }}
+                        placeholder="Enter promo code here"
+                        aria-label="Promo code"
+                        className="min-w-0 flex-1 px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors"
+                      />
+                      <Button type="submit" disabled={promoBusy || !promoInput.trim()} className="bg-red-600 text-white hover:bg-red-700">
+                        {promoBusy ? "..." : "Apply"}
+                      </Button>
+                    </form>
+                  )}
+                  {promoError && (
+                    <p role="alert" className="text-sm text-red-600 mb-3">
+                      {promoError}
+                    </p>
+                  )}
+                  <div className="mt-3">
+                    {promoOffers.map((offer) => {
+                      const active = promo?.code === offer.code;
+                      return (
+                        <div key={offer.code} className={`bg-white p-4 rounded-lg mb-3 shadow-sm border ${active ? "border-green-400" : "border-transparent"}`}>
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                              <div className="font-semibold text-red-600">{offer.code}</div>
+                              <p className="text-sm text-gray-600 mt-1">{offer.description}</p>
+                              <button
+                                type="button"
+                                onClick={() => setTermsOpen(termsOpen === offer.code ? "" : offer.code)}
+                                className="text-blue-600 text-sm font-medium mt-2 hover:text-blue-700"
+                              >
+                                Terms & Conditions
+                              </button>
+                              {termsOpen === offer.code && <p className="text-xs text-gray-500 mt-1">{offer.terms}</p>}
+                            </div>
+                            {active ? (
+                              <span className="inline-flex items-center gap-1 text-sm font-medium text-green-700 shrink-0">
+                                <Check className="w-4 h-4" /> Applied
+                              </span>
+                            ) : (
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                disabled={promoBusy}
+                                onClick={() => applyPromo(offer.code)}
+                                className="shrink-0"
+                                aria-label={`Apply ${offer.code}`}
+                              >
+                                Apply
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
             </div>

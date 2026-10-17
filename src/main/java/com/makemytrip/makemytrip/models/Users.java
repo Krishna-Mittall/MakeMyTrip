@@ -125,5 +125,7 @@ public class Users {
         @Getter @Setter private String roomType;
         @Getter @Setter private int cancelledQuantity;
         @Getter @Setter private double refundedAmount;
+        @Getter @Setter private String promoCode;        // promo code used for this booking
+        @Getter @Setter private double promoDiscount;    // amount taken off by the promo code
     }
 }

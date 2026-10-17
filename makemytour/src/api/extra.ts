@@ -120,3 +120,7 @@ export const savePushSubscription = (userId: string, subscription: any) =>
   api.post(`/push/subscribe`, subscription, { params: { userId } }).then((r) => r.data);
 export const removePushSubscription = (userId: string, endpoint: string) => del(`/push/subscribe`, { userId, endpoint });
 export const sendPushTest = (userId: string) => post(`/push/test`, { userId });
+
+// ---- promo codes
+export const getPromoOffers = (type = "FLIGHT") => get(`/promo/offers`, { type });
+export const validatePromo = (code: string, amount: number, type = "FLIGHT") => get(`/promo/validate`, { code, amount, type });

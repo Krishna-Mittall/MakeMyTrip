@@ -192,10 +192,14 @@ export const handleflightbooking = async (
   seats,
   price,
   seatNumbers,
-  freezeId
+  freezeId,
+  promoCode
 ) => {
   try {
     let url = `${BACKEND_URL}/booking/flight?userId=${userId}&flightId=${flightId}&seats=${seats}&price=${price}`;
+    if (promoCode) {
+      url += `&promoCode=${encodeURIComponent(promoCode)}`;
+    }
     if (seatNumbers && seatNumbers.length) {
       url += `&seatNumbers=${encodeURIComponent(seatNumbers.join(","))}`;
     }

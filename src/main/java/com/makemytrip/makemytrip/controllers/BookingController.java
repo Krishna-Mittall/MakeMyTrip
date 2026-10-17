@@ -13,8 +13,9 @@ public class BookingController {
 
     @PostMapping("/flight")
     public Users.Booking bookFlight(@RequestParam String userId,@RequestParam String flightId,@RequestParam int seats,@RequestParam double price,
-                                    @RequestParam(required = false) String seatNumbers,@RequestParam(required = false) String freezeId){
-        return bookingService.bookFlight(userId,flightId,seats,price,seatNumbers,freezeId);
+                                    @RequestParam(required = false) String seatNumbers,@RequestParam(required = false) String freezeId,
+                                    @RequestParam(required = false) String promoCode){
+        return bookingService.bookFlight(userId,flightId,seats,price,seatNumbers,freezeId,promoCode);
     }
     @PostMapping("/hotel")
     public Users.Booking bookhotel (@RequestParam String userId,@RequestParam String hotelId,@RequestParam int rooms,@RequestParam double price,

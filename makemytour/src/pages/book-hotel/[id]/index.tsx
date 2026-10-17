@@ -5,10 +5,10 @@ import {
   School as Pool,
   UtensilsCrossed,
   Wine,
-  Power,
+  Wifi,
+  Check,
   ChevronRight,
   Camera,
-  Image,
   CreditCard,
   Ticket,
   Plane,
@@ -57,6 +57,7 @@ const BookHotelPage = () => {
   const [loading, setLoading] = useState(true);
   const user = useSelector((state: any) => state.user.user);
   const [open, setopem] = useState(false);
+  const [galleryOpen, setGalleryOpen] = useState(false);
   const dispatch = useDispatch();
   const dayAfterToday = () => new Date(Date.now() + 86400000).toISOString().slice(0, 10);
   const [checkIn, setCheckIn] = useState(dayAfterToday());
@@ -97,17 +98,9 @@ const BookHotelPage = () => {
     name: "Magnum Resorts- Near Candolim Beach",
     rating: 3,
     maxRating: 5,
-    propertyPhotos: 91,
-    guestPhotos: 386,
     description: hotel
       ? `${hotel.hotelName} is in ${hotel.location}. ${hotel.tags?.length ? `Great for ${hotel.tags.join(", ")}.` : ""} Choose from ${"Standard, Deluxe and Suite"} rooms with live prices and availability.`
       : "",
-    amenities: [
-      { icon: <Pool className="w-5 h-5" />, name: "Swimming Pool" },
-      { icon: <UtensilsCrossed className="w-5 h-5" />, name: "Restaurant" },
-      { icon: <Wine className="w-5 h-5" />, name: "Bar" },
-      { icon: <Power className="w-5 h-5" />, name: "Power Backup" },
-    ],
     room: {
       type: "Standard Room",
       capacity: "Fits 2 Adults",
@@ -130,6 +123,20 @@ const BookHotelPage = () => {
       count: 784,
       text: "Very Good",
     },
+  };
+  // the photos and amenities of this hotel, exactly as stored
+  const photos: string[] = (hotel?.images || []).filter(Boolean);
+  const amenityList: string[] = (hotel?.amenities || "")
+    .split(",")
+    .map((a: string) => a.trim())
+    .filter(Boolean);
+  const amenityIcon = (name: string) => {
+    const n = name.toLowerCase();
+    if (n.includes("pool")) return <Pool className="w-5 h-5" />;
+    if (n.includes("restaurant") || n.includes("breakfast") || n.includes("dining")) return <UtensilsCrossed className="w-5 h-5" />;
+    if (n.includes("bar")) return <Wine className="w-5 h-5" />;
+    if (n.includes("wi-fi") || n.includes("wifi")) return <Wifi className="w-5 h-5" />;
+    return <Check className="w-5 h-5" />;
   };
   const shownStars = hotel?.reviewCount ? Math.round(hotel.avgRating || 0) : hotelData.rating;
   const ratingText = !hotel?.reviewCount
@@ -364,12 +371,18 @@ const BookHotelPage = () => {
                   alt="Hotel Main"
                   className="w-full h-80 object-cover rounded-lg"
                 />
-                <div className="absolute bottom-4 left-4 bg-white/90 px-3 py-1 rounded-full flex items-center space-x-1">
-                  <Camera className="w-4 h-4" />
-                  <span className="text-sm">
-                    +{hotelData.propertyPhotos} Property Photos
-                  </span>
-                </div>
+                {photos.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setGalleryOpen(true)}
+                    className="absolute bottom-4 left-4 bg-white/90 px-3 py-1 rounded-full flex items-center space-x-1 hover:bg-white"
+                  >
+                    <Camera className="w-4 h-4" />
+                    <span className="text-sm">
+                      {photos.length} {photos.length === 1 ? "photo" : "photos"}
+                    </span>
+                  </button>
+                )}
               </div>
               <div className="space-y-4">
                 <div className="relative group cursor-pointer">
@@ -385,36 +398,39 @@ const BookHotelPage = () => {
                     alt="Hotel Amenity"
                     className="w-full h-[152px] object-cover rounded-lg"
                   />
-                  <div className="absolute bottom-4 left-4 bg-white/90 px-3 py-1 rounded-full flex items-center space-x-1">
-                    <Image className="w-4 h-4" />
-                    <span className="text-sm">
-                      +{hotelData.guestPhotos} Guest Photos
-                    </span>
-                  </div>
                 </div>
               </div>
             </div>
 
+            <Dialog open={galleryOpen} onOpenChange={setGalleryOpen}>
+              <DialogContent className="sm:max-w-[800px] bg-white max-h-[90vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle>{hotel.hotelName} - photos</DialogTitle>
+                </DialogHeader>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {photos.map((src: string, i: number) => (
+                    <img key={i} src={src} alt={`${hotel.hotelName} photo ${i + 1}`} className="w-full h-56 object-cover rounded-lg" />
+                  ))}
+                </div>
+              </DialogContent>
+            </Dialog>
+
             {/* Description */}
             <p className="text-gray-600 mb-6">
               {hotelData.description}
-              <button className="text-blue-500 ml-2">Read more</button>
             </p>
 
             {/* Amenities */}
             <div className="mb-8">
               <h2 className="text-xl font-semibold mb-4">Amenities</h2>
               <div className="flex flex-wrap gap-6">
-                {hotelData.amenities.map((amenity, index) => (
-                  <div
-                    key={index}
-                    className="flex items-center space-x-2 text-gray-600"
-                  >
-                    {amenity.icon}
-                    <span>{amenity.name}</span>
+                {amenityList.length === 0 && <p className="text-gray-500 text-sm">No amenities listed for this hotel.</p>}
+                {amenityList.map((name) => (
+                  <div key={name} className="flex items-center space-x-2 text-gray-600">
+                    {amenityIcon(name)}
+                    <span>{name}</span>
                   </div>
                 ))}
-                <button className="text-blue-500">+ 31 Amenities</button>
               </div>
             </div>
 
@@ -594,7 +610,6 @@ const BookHotelPage = () => {
                     {hotel.location}
                   </h3>
                 </div>
-                <button className="text-blue-500">See on Map</button>
               </div>
             </div>
           </div>
