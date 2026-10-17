@@ -23,12 +23,15 @@ import {
   Umbrella,
   Users,
 } from "lucide-react";
+import { toast } from "@/lib/toast";
 import { useRouter } from "next/router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSelector } from "react-redux";
 
 export default function Home() {
   const [bookingtype, setbookingtype] = useState("flights");
+  const comingSoon = (what: string) =>
+    toast({ title: `${what} - coming soon`, message: "This demo covers flights and hotels. Please use the Flights or Hotels tab.", tone: "info" });
   const [from, setfrom] = useState("");
   const [to, setto] = useState("");
   const [date, setdate] = useState("");
@@ -296,13 +299,13 @@ export default function Home() {
               active={bookingtype === "hotels"}
               onClick={() => changeTab("hotels")}
             />
-            <NavItem icon={<HomeIcon />} text="Homestays" />
-            <NavItem icon={<Umbrella />} text="Holiday" />
-            <NavItem icon={<Train />} text="Trains" />
-            <NavItem icon={<Bus />} text="Buses" />
-            <NavItem icon={<Car />} text="Cabs" />
-            <NavItem icon={<CreditCard />} text="Forex" />
-            <NavItem icon={<Shield />} text="Insurance" />
+            <NavItem icon={<HomeIcon />} text="Homestays" onClick={() => comingSoon("Homestays")} />
+            <NavItem icon={<Umbrella />} text="Holiday" onClick={() => comingSoon("Holiday")} />
+            <NavItem icon={<Train />} text="Trains" onClick={() => comingSoon("Trains")} />
+            <NavItem icon={<Bus />} text="Buses" onClick={() => comingSoon("Buses")} />
+            <NavItem icon={<Car />} text="Cabs" onClick={() => comingSoon("Cabs")} />
+            <NavItem icon={<CreditCard />} text="Forex" onClick={() => comingSoon("Forex")} />
+            <NavItem icon={<Shield />} text="Insurance" onClick={() => comingSoon("Insurance")} />
           </div>
         </nav>
 
