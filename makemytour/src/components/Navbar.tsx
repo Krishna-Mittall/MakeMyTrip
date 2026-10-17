@@ -25,7 +25,7 @@ const Navbar = () => {
   };
   return (
     <header className=" backdrop-blur-md py-4 sticky top-0 z-50">
-      <div className="container mx-auto px-4 flex items-center justify-between">
+      <div className="container mx-auto px-2 sm:px-4 flex items-center justify-between">
         <div
           className="flex items-center space-x-2 text-white cursor-pointer"
           role="link"
@@ -33,9 +33,9 @@ const Navbar = () => {
           onClick={() => router.push("/")}
         >
           <Plane className="w-6 h-6 sm:w-8 sm:h-8 text-red-500" />
-          <span className="text-xl sm:text-2xl font-bold text-black">MakeMyTour</span>
+          <span className="text-lg sm:text-2xl font-bold text-black">MakeMyTour</span>
         </div>
-        <div className="flex items-center space-x-1 sm:space-x-4">
+        <div className="flex items-center space-x-0 sm:space-x-4">
           <Button variant="ghost" className="px-2 sm:px-4" onClick={() => router.push("/")}>
             <Home className="w-4 h-4 sm:mr-2" />
             <span className="hidden sm:inline">Home</span>
@@ -48,7 +48,7 @@ const Navbar = () => {
             <>
               <NotificationBell />
               {(user.role === "ADMIN" || user.role === "MODERATOR") && (
-                <Button variant="default" className="px-3 sm:px-4" onClick={() => router.push("/admin")}>
+                <Button variant="default" className="px-2 sm:px-4 h-8 sm:h-9 text-xs sm:text-sm" onClick={() => router.push("/admin")}>
                   {user.role === "ADMIN" ? "ADMIN" : "MODERATE"}
                 </Button>
               )}
