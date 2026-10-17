@@ -115,7 +115,7 @@ const BookHotelPage = () => {
         "No meals included",
         "10% off on food & beverage services",
         "Complimentary welcome drinks on arrival",
-        "Non-Refundable",
+        "Refundable: see the cancellation & refund policy",
       ],
       originalPrice: 8999,
       discountedPrice: 664,

@@ -68,6 +68,8 @@ public class CancellationService {
         public int quantity;
         public List<String> seats = new ArrayList<>();
         public long hoursToTravel;
+        public long hoursSinceBooking;
+        public String policyKey;
         public int percent;
         public String policyText;
         public double originalAmount;
@@ -89,6 +91,15 @@ public class CancellationService {
         }
         // old bookings without a travel date: treat them as far in the future
         return Instant.now().plus(Duration.ofDays(7));
+    }
+
+    /** Hours since the reservation was made. Old bookings without a time count as made long ago. */
+    private long hoursSinceBooking(Booking b) {
+        Instant created = TimeUtil.parse(b.getCreatedAt());
+        if (created == null) {
+            return Long.MAX_VALUE;
+        }
+        return Math.max(0, Duration.between(created, Instant.now()).toMinutes() / 60);
     }
 
     private double share(Booking b, int qty, List<String> seats) {
@@ -154,9 +165,11 @@ public class CancellationService {
                     + (plan.flight ? "flight has already departed" : "check-in time has passed"));
         }
         plan.hoursToTravel = minutes / 60;
-        RefundPolicy.Result result = RefundPolicy.evaluate(plan.flight, plan.hoursToTravel);
+        plan.hoursSinceBooking = hoursSinceBooking(b);
+        RefundPolicy.Result result = RefundPolicy.evaluate(plan.flight, plan.hoursToTravel, plan.hoursSinceBooking);
         plan.percent = result.percent;
         plan.policyText = result.text;
+        plan.policyKey = result.key;
         plan.originalAmount = Math.round(share(b, plan.quantity, plan.seats));
         plan.refundAmount = Math.round(plan.originalAmount * plan.percent / 100.0);
         return plan;
@@ -170,6 +183,8 @@ public class CancellationService {
         m.put("quantity", p.quantity);
         m.put("seats", p.seats);
         m.put("hoursToTravel", p.hoursToTravel);
+        m.put("hoursSinceBooking", p.hoursSinceBooking == Long.MAX_VALUE ? null : p.hoursSinceBooking);
+        m.put("policyKey", p.policyKey);
         m.put("originalAmount", p.originalAmount);
         m.put("refundPercent", p.percent);
         m.put("refundAmount", p.refundAmount);

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { getRefundPolicy } from "@/api/extra";
 
-const colors = ["bg-green-500", "bg-lime-500", "bg-yellow-500", "bg-red-500"];
+const colors = ["bg-orange-500", "bg-green-500", "bg-lime-500", "bg-yellow-500", "bg-red-500"];
 
 /** The refund policy of flights or hotels, as shown to the traveller before booking. */
 const RefundPolicyBlock = ({ type }: { type: "flight" | "hotel" }) => {
@@ -16,12 +16,12 @@ const RefundPolicyBlock = ({ type }: { type: "flight" | "hotel" }) => {
     <div className="bg-gray-50 p-4 sm:p-6 rounded-xl">
       <div className="flex h-2.5 rounded-full overflow-hidden mb-4">
         {rows.map((r, i) => (
-          <div key={r.when} className={`flex-1 ${colors[i] || "bg-red-500"}`} />
+          <div key={r.key || r.when} className={`flex-1 ${colors[i] || "bg-red-500"}`} />
         ))}
       </div>
       <ul className="space-y-2">
         {rows.map((r, i) => (
-          <li key={r.when} className="flex items-center justify-between gap-3 text-sm">
+          <li key={r.key || r.when} className="flex items-center justify-between gap-3 text-sm">
             <span className="flex items-center gap-2 text-gray-700">
               <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${colors[i] || "bg-red-500"}`} />
               {r.when}
@@ -31,7 +31,8 @@ const RefundPolicyBlock = ({ type }: { type: "flight" | "hotel" }) => {
         ))}
       </ul>
       <p className="text-xs text-gray-500 mt-3">
-        You can also cancel only some of the {type === "flight" ? "seats" : "rooms"} - the refund is worked out for just that part. Cancel from your
+        The first rule is checked first: cancel within 24 hours of making the reservation and you get 50% of the booking amount back. After that, the
+        time left before {type === "flight" ? "departure" : "check-in"} decides the refund. You can also cancel only some of the {type === "flight" ? "seats" : "rooms"} - the refund is worked out for just that part. Cancel from your
         dashboard and track the refund there.
       </p>
     </div>

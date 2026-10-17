@@ -196,7 +196,7 @@ const CancelDialog = ({ booking, open, onClose, onCancelled }: Props) => {
                 <table className="w-full mt-2 text-xs border rounded">
                   <tbody>
                     {table.map((row: any) => (
-                      <tr key={row.when} className={`border-b last:border-0 ${preview && preview.refundPercent === row.refundPercent ? "bg-green-50 font-medium" : ""}`}>
+                      <tr key={row.key || row.when} className={`border-b last:border-0 ${preview && preview.policyKey === row.key ? "bg-green-50 font-medium" : ""}`}>
                         <td className="p-2">{row.when}</td>
                         <td className="p-2 text-right">{row.refundPercent}% refund</td>
                       </tr>
