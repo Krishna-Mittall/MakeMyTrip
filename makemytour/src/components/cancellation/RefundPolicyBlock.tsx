@@ -31,7 +31,7 @@ const RefundPolicyBlock = ({ type }: { type: "flight" | "hotel" }) => {
         ))}
       </ul>
       <p className="text-xs text-gray-500 mt-3">
-        The first rule is checked first: cancel within 24 hours of making the reservation and you get 50% of the booking amount back. After that, the
+        The first row is checked first. If you cancel later than that, the
         time left before {type === "flight" ? "departure" : "check-in"} decides the refund. You can also cancel only some of the {type === "flight" ? "seats" : "rooms"} - the refund is worked out for just that part. Cancel from your
         dashboard and track the refund there.
       </p>

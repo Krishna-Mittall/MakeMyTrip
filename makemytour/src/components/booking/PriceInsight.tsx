@@ -18,12 +18,14 @@ type Props = {
 const factorColor = (code: string, percent: number) =>
   percent > 0 ? (code === "HOLIDAY" || code === "PEAK" ? "bg-orange-500" : "bg-red-400") : "bg-green-500";
 
+const HISTORY_DAYS = 30;
+
 /** Live price, why it is what it is, the price history graph and the "price freeze". */
 const PriceInsight = ({ type, itemId, stayDate, onQuote, compact }: Props) => {
   const user = useSelector((state: any) => state.user.user);
   const [quote, setQuote] = useState<any>(null);
   const [history, setHistory] = useState<any>(null);
-  const [days, setDays] = useState(30);
+  const days = HISTORY_DAYS;
   const [hours, setHours] = useState(24);
   const [busy, setBusy] = useState(false);
   const [flash, setFlash] = useState(false);
@@ -239,17 +241,7 @@ const PriceInsight = ({ type, itemId, stayDate, onQuote, compact }: Props) => {
       <div>
         <div className="flex items-center justify-between mb-2">
           <h4 className="text-sm font-semibold">Price history</h4>
-          <div className="inline-flex rounded-md border overflow-hidden text-xs">
-            {[7, 30, 60].map((d) => (
-              <button
-                key={d}
-                onClick={() => setDays(d)}
-                className={`px-2.5 py-1 ${days === d ? "bg-gray-900 text-white" : "bg-white hover:bg-gray-100"}`}
-              >
-                {d}d
-              </button>
-            ))}
-          </div>
+          <span className="text-xs text-gray-500">Last {days} days</span>
         </div>
         {history && (
           <>

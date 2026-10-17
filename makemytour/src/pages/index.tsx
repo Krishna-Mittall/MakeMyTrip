@@ -17,7 +17,6 @@ import {
   Hotel,
   MapPin,
   Plane,
-  QrCode,
   Shield,
   Train,
   Umbrella,
@@ -74,77 +73,6 @@ export default function Home() {
     { id: 3, name: "Seaside Resort", city: "Goa", price: 12000 },
     { id: 4, name: "Mountain View Hotel", city: "Shimla", price: 10000 },
   ];
-  const offers = [
-    {
-      title: "Domestic Flights",
-      description: "Get up to 20% off on domestic flights",
-      imageUrl:
-        "https://images.unsplash.com/photo-1436491865332-7a61a109cc05?auto=format&fit=crop&w=800",
-    },
-    {
-      title: "International Hotels",
-      description: "Book luxury hotels worldwide",
-      imageUrl:
-        "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=800",
-    },
-    {
-      title: "Holiday Packages",
-      description: "Exclusive deals on holiday packages",
-      imageUrl:
-        "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=800",
-    },
-  ];
-
-  const collections = [
-    {
-      title: "Stays in & Around Delhi",
-      imageUrl:
-        "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=800",
-      tag: "TOP 8",
-    },
-    {
-      title: "Stays in & Around Mumbai",
-      imageUrl:
-        "https://images.unsplash.com/photo-1566665797739-1674de7a421a?auto=format&fit=crop&w=800",
-      tag: "TOP 8",
-    },
-    {
-      title: "Stays in & Around Bangalore",
-      imageUrl:
-        "https://images.unsplash.com/photo-1587474260584-136574528ed5?auto=format&fit=crop&w=800",
-      tag: "TOP 9",
-    },
-    {
-      title: "Beach Destinations",
-      imageUrl:
-        "https://images.unsplash.com/photo-1520454974749-611b7248ffdb?auto=format&fit=crop&w=800",
-      tag: "TOP 11",
-    },
-  ];
-
-  const wonders = [
-    {
-      title: "Shimla's Best Kept Secret",
-      imageUrl:
-        "https://images.unsplash.com/photo-1626621341517-bbf3d9990a23?auto=format&fit=crop&w=800",
-    },
-    {
-      title: "Tamil Nadu's Charming Hill Town",
-      imageUrl:
-        "https://images.unsplash.com/photo-1544735716-392fe2489ffa?auto=format&fit=crop&w=800",
-    },
-    {
-      title: "Quaint Little Hill Station in Gujarat",
-      imageUrl:
-        "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?auto=format&fit=crop&w=800",
-    },
-    {
-      title: "A pleasant summer retreat",
-      imageUrl:
-        "https://images.unsplash.com/photo-1593181629936-11c609b8db9b?auto=format&fit=crop&w=800",
-    },
-  ];
-
   useEffect(() => {
     const fetchdata = async () => {
       try {
@@ -161,6 +89,23 @@ export default function Home() {
 
     fetchdata();
   }, []);
+
+  // links like /?hotels=Goa (footer, cards) open the hotel list of that city
+  useEffect(() => {
+    const c = router.query.hotels;
+    if (!router.isReady || loading || typeof c !== "string" || !c) return;
+    const list = hotel.filter((h: any) => (h.location || "").toLowerCase() === c.toLowerCase());
+    setbookingtype("hotels");
+    setfrom("");
+    setto(c);
+    setformError("");
+    setsuggested(false);
+    setsearched(true);
+    setsearchresult(list);
+    setnotice(list.length ? "" : `No hotels found in ${c}.`);
+    router.replace("/", undefined, { shallow: true });
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, [router.isReady, router.query.hotels, loading]);
 
   const cityOptions = useMemo(() => {
     const cities = new Set<string>();
@@ -208,6 +153,75 @@ export default function Home() {
     setnotice("");
     setsuggested(false);
   };
+  const scrollToSearch = () => window.scrollTo({ top: 0, behavior: "smooth" });
+  const showHotels = (heading: string, list: any[], city = "") => {
+    setbookingtype("hotels");
+    setfrom("");
+    setto(city);
+    setformError("");
+    setsuggested(false);
+    setsearched(true);
+    setsearchresult(list);
+    setnotice(list.length ? heading : "No hotels found for this choice.");
+    scrollToSearch();
+  };
+  const showCity = (city: string) => showHotels(`Hotels in ${city}`, hotel.filter((h: any) => sameCity(h.location, city)), city);
+  const showBeach = () => showHotels("Hotels near the beach", hotel.filter((h: any) => (h.tags || []).includes("beach")));
+  const cityCard = (city: string) => {
+    const list = hotel.filter((h: any) => sameCity(h.location, city));
+    const withImage = list.find((h: any) => h.images && h.images.length);
+    const from = list.length ? Math.min(...list.map((h: any) => h.currentPricePerNight || h.pricePerNight)) : 0;
+    return { list, imageUrl: withImage ? withImage.images[0] : "", from };
+  };
+  const stayText = (n: number, from: number) => `${n} ${n === 1 ? "stay" : "stays"} · from ₹${Math.round(from).toLocaleString("en-IN")}`;
+  const featured = [
+    {
+      title: "Domestic Flights",
+      description: "Live demand-based prices, seat selection and a 48-hour price freeze.",
+      imageUrl: "https://images.unsplash.com/photo-1436491865332-7a61a109cc05?auto=format&fit=crop&w=800",
+      action: "Search flights",
+      onClick: () => {
+        changeTab("flights");
+        scrollToSearch();
+      },
+    },
+    {
+      title: "Hotels in Bali",
+      description: "Beach resorts and jungle villas, with room selection and a 3D preview.",
+      imageUrl: cityCard("Bali").imageUrl || "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=800",
+      action: "View Bali hotels",
+      onClick: () => showCity("Bali"),
+    },
+    {
+      title: "Live Flight Status",
+      description: "Follow your flights in real time and get delay and gate alerts.",
+      imageUrl: "https://images.unsplash.com/photo-1464037866556-6812c9d1c72e?auto=format&fit=crop&w=800",
+      action: "Track flights",
+      onClick: () => router.push("/flight-status"),
+    },
+  ];
+  const collections = [
+    ...["Delhi", "Mumbai", "Bengaluru"].map((city) => {
+      const c = cityCard(city);
+      return { title: `Stays in & Around ${city}`, imageUrl: c.imageUrl, tag: `${c.list.length} ${c.list.length === 1 ? "STAY" : "STAYS"}`, show: c.list.length > 0, onClick: () => showCity(city) };
+    }),
+    (() => {
+      const beach = hotel.filter((h: any) => (h.tags || []).includes("beach"));
+      const img = beach.find((h: any) => h.images && h.images.length);
+      return { title: "Beach Destinations", imageUrl: img ? img.images[0] : "", tag: `${beach.length} STAYS`, show: beach.length > 0, onClick: showBeach };
+    })(),
+  ].filter((c) => c.show);
+  const wonders = [
+    ["Shimla", "Shimla's Best Kept Secret"],
+    ["Udaipur", "Udaipur, the City of Lakes"],
+    ["Jaipur", "Jaipur's Pink City Heritage"],
+    ["Kolkata", "Kolkata's Old-World Charm"],
+  ]
+    .map(([city, title]) => {
+      const c = cityCard(city);
+      return { title, imageUrl: c.imageUrl, subtitle: c.list.length ? stayText(c.list.length, c.from) : "", show: c.list.length > 0, onClick: () => showCity(city) };
+    })
+    .filter((w) => w.show);
   const handlesearch = () => {
     setformError("");
     setnotice("");
@@ -506,15 +520,16 @@ export default function Home() {
 
           {/* Offers Section */}
           <section className="my-16">
-            <h2 className="text-2xl font-bold mb-8 text-white">Best Offers</h2>
+            <h2 className="text-2xl font-bold mb-8 text-white">Explore MakeMyTour</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {offers.map((offer, index) => (
-                <OfferCard key={index} {...offer} />
+              {featured.map((offer) => (
+                <OfferCard key={offer.title} {...offer} />
               ))}
             </div>
           </section>
 
           {/* Collections Section */}
+          {collections.length > 0 && (
           <section className="my-16">
             <div className="flex justify-between items-center mb-8">
               <h2 className="text-2xl font-bold text-white">
@@ -522,13 +537,15 @@ export default function Home() {
               </h2>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {collections.map((collection, index) => (
-                <CollectionCard key={index} {...collection} />
+              {collections.map((collection) => (
+                <CollectionCard key={collection.title} {...collection} />
               ))}
             </div>
           </section>
+          )}
 
           {/* Wonders Section */}
+          {wonders.length > 0 && (
           <section className="my-16">
             <div className="flex justify-between items-center mb-8">
               <h2 className="text-2xl font-bold text-white">
@@ -536,102 +553,69 @@ export default function Home() {
               </h2>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {wonders.map((wonder, index) => (
-                <WonderCard key={index} {...wonder} />
+              {wonders.map((wonder) => (
+                <WonderCard key={wonder.title} {...wonder} />
               ))}
             </div>
           </section>
-
-          {/* Download App Section */}
-          <DownloadApp />
+          )}
         </div>
       </main>
     </div>
   );
 }
-const OfferCard = ({ title, description, imageUrl }: any) => {
+const FALLBACK_IMAGE = "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=800";
+
+const OfferCard = ({ title, description, imageUrl, action, onClick }: any) => {
   return (
     <div className="bg-white rounded-lg shadow-md overflow-hidden">
-      <img src={imageUrl} alt={title} className="w-full h-48 object-cover" />
+      <img src={imageUrl || FALLBACK_IMAGE} alt={title} className="w-full h-48 object-cover" />
       <div className="p-4">
         <h3 className="font-semibold text-lg mb-2">{title}</h3>
         <p className="text-gray-600 text-sm">{description}</p>
-        <button className="mt-4 px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors">
-          Book Now
+        <button onClick={onClick} className="mt-4 px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors">
+          {action}
         </button>
       </div>
     </div>
   );
 };
 
-const CollectionCard = ({ title, imageUrl, tag }: any) => {
+const CollectionCard = ({ title, imageUrl, tag, onClick }: any) => {
   return (
-    <div className="relative group cursor-pointer overflow-hidden rounded-lg">
+    <button onClick={onClick} className="relative group cursor-pointer overflow-hidden rounded-lg text-left" aria-label={`${title}: see the hotels`}>
       <img
-        src={imageUrl}
+        src={imageUrl || FALLBACK_IMAGE}
         alt={title}
         className="w-full h-64 object-cover transition-transform duration-300 group-hover:scale-110"
       />
       <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black/70">
         <div className="absolute top-4 left-4">
-          <span className="bg-white text-black text-sm font-semibold px-2 py-1 rounded">
-            {tag}
-          </span>
+          <span className="bg-white text-black text-sm font-semibold px-2 py-1 rounded">{tag}</span>
         </div>
         <div className="absolute bottom-4 left-4 right-4">
           <h3 className="text-white text-lg font-semibold">{title}</h3>
         </div>
       </div>
-    </div>
-  );
-};
-const DownloadApp = () => {
-  return (
-    <div className="bg-white p-6 rounded-lg shadow-md max-w-7xl mx-auto my-12">
-      <div className="flex flex-col md:flex-row items-center justify-between">
-        <div className="mb-6 md:mb-0">
-          <h3 className="text-xl font-bold mb-2">Download App Now!</h3>
-          <p className="text-gray-600 mb-4">
-            Get India's #1 travel super app with best deals on flights
-          </p>
-          <div className="flex space-x-4">
-            <img
-              src="https://upload.wikimedia.org/wikipedia/commons/3/3c/Download_on_the_App_Store_Badge.svg"
-              alt="App Store"
-              className="h-10"
-            />
-            <img
-              src="https://upload.wikimedia.org/wikipedia/commons/7/78/Google_Play_Store_badge_EN.svg"
-              alt="Play Store"
-              className="h-10"
-            />
-          </div>
-        </div>
-        <div className="flex items-center space-x-4">
-          <QrCode className="w-24 h-24" />
-          <p className="text-sm text-gray-600">
-            Scan QR code to download the app
-          </p>
-        </div>
-      </div>
-    </div>
+    </button>
   );
 };
 
-const WonderCard = ({ title, imageUrl }: any) => {
+const WonderCard = ({ title, imageUrl, subtitle, onClick }: any) => {
   return (
-    <div className="relative group cursor-pointer overflow-hidden rounded-lg">
+    <button onClick={onClick} className="relative group cursor-pointer overflow-hidden rounded-lg text-left" aria-label={`${title}: see the hotels`}>
       <img
-        src={imageUrl}
+        src={imageUrl || FALLBACK_IMAGE}
         alt={title}
         className="w-full h-64 object-cover transition-transform duration-300 group-hover:scale-110"
       />
       <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black/70">
         <div className="absolute bottom-4 left-4 right-4">
           <h3 className="text-white text-lg font-semibold">{title}</h3>
+          {subtitle && <p className="text-white/90 text-sm mt-0.5">{subtitle}</p>}
         </div>
       </div>
-    </div>
+    </button>
   );
 };
 function NavItem({ icon, text, active = false, onClick }: any) {

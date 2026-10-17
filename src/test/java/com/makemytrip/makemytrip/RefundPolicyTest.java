@@ -25,8 +25,8 @@ class RefundPolicyTest {
         assertEquals(90, RefundPolicy.evaluate(true, 72, 24).percent);
         assertEquals(75, RefundPolicy.evaluate(true, 71, LONG_AGO).percent);
         assertEquals(75, RefundPolicy.evaluate(true, 24, LONG_AGO).percent);
-        assertEquals(50, RefundPolicy.evaluate(true, 23, LONG_AGO).percent);
-        assertEquals(50, RefundPolicy.evaluate(true, 3, LONG_AGO).percent);
+        assertEquals(25, RefundPolicy.evaluate(true, 23, LONG_AGO).percent);
+        assertEquals(25, RefundPolicy.evaluate(true, 3, LONG_AGO).percent);
         assertEquals(0, RefundPolicy.evaluate(true, 2, LONG_AGO).percent);
         assertEquals(0, RefundPolicy.evaluate(true, -5, LONG_AGO).percent);
     }
@@ -35,8 +35,8 @@ class RefundPolicyTest {
     void hotelRefundsFollowTheTimeLeftAfterTheFirstDay() {
         assertEquals(100, RefundPolicy.evaluate(false, 120, LONG_AGO).percent);
         assertEquals(75, RefundPolicy.evaluate(false, 48, LONG_AGO).percent);
-        assertEquals(50, RefundPolicy.evaluate(false, 10, LONG_AGO).percent);
-        assertEquals(50, RefundPolicy.evaluate(false, 0, LONG_AGO).percent);
+        assertEquals(25, RefundPolicy.evaluate(false, 10, LONG_AGO).percent);
+        assertEquals(25, RefundPolicy.evaluate(false, 0, LONG_AGO).percent);
     }
 
     @Test

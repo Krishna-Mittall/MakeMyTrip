@@ -67,5 +67,5 @@ An empty database is filled with demo flights/hotels. Demo accounts: `admin@make
 Tests: `./mvnw test -Dtest='RefundPolicyTest,PricingRulesTest,RecommendationMathTest'`.
 
 ## Notes
-* Refund policy: cancelled within 24 hours of the reservation (booking time) -> 50 % of the booking amount. After that the time left decides: flights 90 % (72h+ before departure), 75 % (24-72h), 50 % (3-24h), 0 % (<3h); hotels 100 % (72h+), 75 % (24-72h), 50 % (<24h). Partial cancellation (single seats/rooms) is supported. In the demo the refund tracker moves PENDING -> PROCESSED -> COMPLETED within minutes; real timelines are shown as "expected" text.
+* Refund policy: cancelled within 24 hours of the reservation (booking time) -> 50 % of the booking amount. After that the time left decides: flights 90 % (72h+ before departure), 75 % (24-72h), 25 % (3-24h), 0 % (<3h); hotels 100 % (72h+), 75 % (24-72h), 25 % (<24h). Partial cancellation (single seats/rooms) is supported. In the demo the refund tracker moves PENDING -> PROCESSED -> COMPLETED within minutes; real timelines are shown as "expected" text.
 * Flight data comes from a built-in mock flight API; price history before the app was first run is generated for the demo.

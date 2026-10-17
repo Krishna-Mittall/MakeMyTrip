@@ -564,10 +564,6 @@ const BookHotelPage = () => {
                   </DialogContent>
                 )}
               </Dialog>
-
-              <button className="w-full text-blue-500 text-center">
-                14 More Options
-              </button>
             </div>
 
             {/* Rating Card */}
